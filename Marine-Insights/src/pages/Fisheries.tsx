@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 // @ts-ignore
-import Plot from 'plotly.js-dist';
+import Plotly from 'plotly.js-dist';
 import { getJson, postFormData } from '../utils/api';
-import { mockFishClassification, mockOverfishing } from '../utils/mock';
+import { mockFishClassification } from '../utils/mock';
 
 const Fisheries: React.FC = () => {
 
@@ -15,21 +15,7 @@ const Fisheries: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchOverfishingData = async () => {
-      try {
-        const data = await getJson<any>('/overfishing_monitor');
-        setOverfishingData(data);
-      } catch (error) {
-        console.log('Overfishing API not available, using mock data');
-        setOverfishingData(mockOverfishing());
-      } finally {
-        // no-op
-      }
-    };
-
-    fetchOverfishingData();
-  }, []);
+  // Removed automatic data loading - graph will only show after CSV upload
 
   useEffect(() => {
     if (!selectedFile) {
@@ -46,7 +32,7 @@ const Fisheries: React.FC = () => {
 
   useEffect(() => {
     if (overfishingData) {
-      Plot.newPlot('overfishing-chart', overfishingData.data, overfishingData.layout, {
+      Plotly.newPlot('overfishing-chart', overfishingData.data, overfishingData.layout, {
         responsive: true,
         displayModeBar: false
       });
@@ -122,80 +108,157 @@ const Fisheries: React.FC = () => {
           </h2>
 
           {/* CSV Upload Section */}
-          <div className="mb-6 backdrop-blur-md bg-white/5 rounded-xl p-6 border border-white/10">
-            <h3 className="text-lg font-semibold text-white mb-4">Upload Fisheries Data</h3>
-            <div className="flex items-center space-x-4">
-              <input
-                type="file"
-                accept=".csv"
-                onChange={(e) => setOverfishingFile(e.target.files?.[0] || null)}
-                className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#F1C40F] focus:border-transparent"
-              />
+          <h3 className="text-lg font-semibold text-white mb-4">Upload Fisheries Data</h3>
+          <div className="mb-6 border-2 border-dashed border-white/30 rounded-lg p-8 text-center hover:border-[#F1C40F]/50 transition-colors duration-300">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setOverfishingFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="overfishing-csv-upload"
+            />
+            <label htmlFor="overfishing-csv-upload" className="cursor-pointer">
+              <div className="text-4xl mb-4">📊</div>
+              <p className="text-white/70 mb-2">Click to upload CSV file</p>
+              <p className="text-white/50 text-sm">Required columns: Date, Stock_Volume, Catch_Volume</p>
+            </label>
+          </div>
+
+          {overfishingFile && (
+            <div className="mb-6">
+              <p className="text-white/80 mb-3">Selected: {overfishingFile.name}</p>
               <button
                 onClick={async () => {
                   if (!overfishingFile) return;
                   setUploading(true);
+                  setOverfishingData(null); // Clear previous data
                   try {
                     const formData = new FormData();
                     formData.append('file', overfishingFile);
                     const data = await postFormData<any>('/overfishing_monitor', undefined, formData);
-                    setOverfishingData(data);
+
+                    // Check if the response contains an error
+                    if (data.error) {
+                      alert(`Upload failed: ${data.error}`);
+                      console.error('Backend error:', data.error);
+                    } else {
+                      console.log('CSV uploaded successfully');
+                      console.log('Backend response:', JSON.stringify(data, null, 2));
+                      setOverfishingData(data);
+                    }
                   } catch (error) {
-                    console.log('CSV upload failed, using mock data');
-                    setOverfishingData(mockOverfishing());
+                    console.error('CSV upload failed:', error);
+                    alert('Failed to upload CSV. Please check the file format and try again.');
                   } finally {
                     setUploading(false);
                   }
                 }}
-                disabled={!overfishingFile || uploading}
-                className="px-6 py-2 bg-[#F1C40F] text-black font-semibold rounded-lg hover:bg-[#F1C40F]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={uploading}
+                className="w-full bg-gradient-to-r from-[#C9A000] to-[#F1C40F] hover:from-[#F1C40F] hover:to-[#C9A000] disabled:from-gray-600 disabled:to-gray-700 text-black font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
               >
-                {uploading ? 'Uploading...' : 'Upload CSV'}
+                {uploading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black mr-2"></div>
+                    Analyzing...
+                  </div>
+                ) : (
+                  'Analyze Overfishing Data'
+                )}
               </button>
             </div>
-            <p className="text-white/60 text-sm mt-2">
-              CSV must contain columns: Date, Stock_Volume, Catch_Volume
-            </p>
-          </div>
+          )}
 
-          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-            {overfishingData ? (
-              <div id="overfishing-chart" style={{ height: '500px' }}></div>
-            ) : (
-              <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#F1C40F]"></div>
-              </div>
-            )}
-          </div>
-          <div className="mt-6 grid md:grid-cols-3 gap-4">
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Current Status</h3>
-              <p className="text-white/70 text-sm mb-2">Stock Volume: 21,942</p>
-              <p className="text-white/70 text-sm mb-2">Catch Volume: 5,583</p>
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{ width: '25%' }}></div>
-              </div>
-              <p className="text-white/50 text-xs mt-1">Overfishing Risk: High</p>
-            </div>
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Threshold Alert</h3>
-              <p className="text-white/70 text-sm mb-2">20% of Stock = 4,388</p>
-              <p className="text-white/70 text-sm mb-2">Current Catch: 5,583</p>
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{ width: '100%' }}></div>
-              </div>
-              <p className="text-white/50 text-xs mt-1">Exceeds threshold by 27%</p>
-            </div>
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Monthly Trend</h3>
-              <p className="text-white/70 text-sm mb-2">Overfishing Months: 14/24</p>
-              <p className="text-white/70 text-sm mb-2">Healthy Months: 10/24</p>
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div className="bg-[#F1C40F] h-2 rounded-full" style={{ width: '58%' }}></div>
-              </div>
-              <p className="text-white/50 text-xs mt-1">58% overfishing rate</p>
-            </div>
-          </div>
+
+
+
+          {overfishingData && (() => {
+            // Extract data from the backend response
+            const stockVolumes: number[] = overfishingData.data[0]?.y || [];
+            const catchVolumes: number[] = overfishingData.data[1]?.y || [];
+            const thresholds: number[] = overfishingData.data[2]?.y || [];
+
+            // Calculate current (latest) values
+            const currentStock = stockVolumes[stockVolumes.length - 1] || 0;
+            const currentCatch = catchVolumes[catchVolumes.length - 1] || 0;
+            const currentThreshold = thresholds[thresholds.length - 1] || 0;
+
+            // Calculate overfishing statistics
+            const overfishingMonths = catchVolumes.filter((catchVol: number, idx: number) => {
+              const threshold = thresholds[idx];
+              return threshold !== undefined && catchVol > threshold;
+            }).length;
+            const totalMonths = catchVolumes.length;
+            const healthyMonths = totalMonths - overfishingMonths;
+            const overfishingRate = totalMonths > 0 ? Math.round((overfishingMonths / totalMonths) * 100) : 0;
+
+            // Calculate threshold excess
+            const thresholdExcess = currentThreshold > 0
+              ? Math.round(((currentCatch - currentThreshold) / currentThreshold) * 100)
+              : 0;
+
+            // Determine risk level
+            const riskLevel = overfishingRate > 50 ? 'High' : overfishingRate > 30 ? 'Medium' : 'Low';
+            const riskColor = overfishingRate > 50 ? '#FF6B6B' : overfishingRate > 30 ? '#F1C40F' : '#2ECC71';
+
+            return (
+              <>
+                <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                  <div id="overfishing-chart" style={{ height: '500px' }}></div>
+                </div>
+
+                <div className="mt-6 grid md:grid-cols-3 gap-4">
+                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Current Status</h3>
+                    <p className="text-white/70 text-sm mb-2">Stock Volume: {currentStock.toLocaleString()}</p>
+                    <p className="text-white/70 text-sm mb-2">Catch Volume: {currentCatch.toLocaleString()}</p>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${currentStock > 0 ? Math.min((currentCatch / currentStock) * 100, 100) : 0}%`,
+                          backgroundColor: riskColor
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">Overfishing Risk: {riskLevel}</p>
+                  </div>
+
+                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Threshold Alert</h3>
+                    <p className="text-white/70 text-sm mb-2">20% of Stock = {currentThreshold.toLocaleString()}</p>
+                    <p className="text-white/70 text-sm mb-2">Current Catch: {currentCatch.toLocaleString()}</p>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-[#FF6B6B] h-2 rounded-full"
+                        style={{ width: `${currentThreshold > 0 ? Math.min((currentCatch / currentThreshold) * 100, 100) : 0}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">
+                      {thresholdExcess > 0
+                        ? `Exceeds threshold by ${thresholdExcess}%`
+                        : `Within safe limits`}
+                    </p>
+                  </div>
+
+                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Monthly Trend</h3>
+                    <p className="text-white/70 text-sm mb-2">Overfishing Months: {overfishingMonths}/{totalMonths}</p>
+                    <p className="text-white/70 text-sm mb-2">Healthy Months: {healthyMonths}/{totalMonths}</p>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${overfishingRate}%`,
+                          backgroundColor: riskColor
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">{overfishingRate}% overfishing rate</p>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Fish Species Classification */}
