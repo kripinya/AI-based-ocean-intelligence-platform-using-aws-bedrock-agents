@@ -2,8 +2,18 @@ import os
 from groq import Groq
 from rag.src.search import search_context
 
+from dotenv import load_dotenv
+
+# Load env variables
+load_dotenv()
+
 # Initialize Groq Client
-client = Groq(api_key="GROQ_API_KEY")
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    # Fallback or error logging
+    print("WARNING: GROQ_API_KEY not found in environment variables.")
+
+client = Groq(api_key=api_key)
 
 def generate_fisheries_insight(user_query):
     """
