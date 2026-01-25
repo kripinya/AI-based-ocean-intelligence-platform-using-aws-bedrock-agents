@@ -189,4 +189,94 @@ export function mockFishClassification(): { species: string; confidence: string 
 	return { species, confidence };
 }
 
+export function mockOverfishing(): MockPlot {
+	// Sample overfishing data based on the provided CSV
+	const dates = [
+		'2023-01', '2023-02', '2023-03', '2023-04', '2023-05', '2023-06',
+		'2023-07', '2023-08', '2023-09', '2023-10', '2023-11', '2023-12',
+		'2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06',
+		'2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'
+	];
+	
+	const stockVolumes = [
+		20946, 20972, 20974, 21032, 21313, 21177,
+		21295, 21184, 21187, 21346, 21402, 21344,
+		21323, 21441, 21418, 21489, 21544, 21529,
+		21793, 21907, 21754, 21823, 21807, 21942
+	];
+	
+	const catchVolumes = [
+		3832, 3244, 2333, 5740, 5596, 6351,
+		6374, 4471, 5377, 6168, 5777, 3190,
+		4053, 2698, 6228, 4754, 3139, 5045,
+		4873, 3759, 2669, 5113, 4449, 5583
+	];
+	
+	// Calculate overfishing threshold (20% of stock)
+	const thresholds = stockVolumes.map(stock => stock * 0.2);
+	
+	// Determine overfishing periods
+	const overfishingIndices = catchVolumes.map((catchVol, index) => 
+		catchVol > thresholds[index] ? index : -1
+	).filter(index => index !== -1);
+	
+	return {
+		data: [
+			{
+				x: dates,
+				y: stockVolumes,
+				type: 'scatter',
+				mode: 'lines',
+				name: 'Stock Volume',
+				line: { color: '#2ECC71', width: 3 }
+			},
+			{
+				x: dates,
+				y: catchVolumes,
+				type: 'scatter',
+				mode: 'lines',
+				name: 'Catch Volume',
+				line: { color: '#FF6B6B', width: 3 }
+			},
+			{
+				x: dates,
+				y: thresholds,
+				type: 'scatter',
+				mode: 'lines',
+				name: 'Overfishing Threshold (20%)',
+				line: { color: '#F1C40F', width: 2, dash: 'dash' }
+			}
+		],
+		layout: {
+			title: { text: 'Overfishing Monitoring - Stock vs Catch Analysis', font: { color: 'white', size: 18 } },
+			xaxis: { 
+				title: 'Date', 
+				color: 'white', 
+				gridcolor: 'rgba(255,255,255,0.15)',
+				tickangle: -45
+			},
+			yaxis: { 
+				title: 'Volume', 
+				color: 'white', 
+				gridcolor: 'rgba(255,255,255,0.15)' 
+			},
+			plot_bgcolor: 'rgba(0,0,0,0)',
+			paper_bgcolor: 'rgba(0,0,0,0)',
+			font: { color: 'white' },
+			legend: { bgcolor: 'rgba(255,255,255,0.1)', bordercolor: 'rgba(255,255,255,0.2)' },
+			shapes: overfishingIndices.map(index => ({
+				type: 'rect',
+				xref: 'x',
+				yref: 'paper',
+				x0: dates[index],
+				y0: 0,
+				x1: dates[index],
+				y1: 1,
+				fillcolor: 'rgba(255, 107, 107, 0.2)',
+				opacity: 0.3,
+				line: { width: 0 }
+			}))
+		}
+	};
+}
 

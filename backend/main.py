@@ -137,3 +137,35 @@ def agentic_fisheries():
     return {
         "agentic_decision": result
     }
+# 5️⃣ Overfishing Monitor - GET (Mock Data)
+@app.get("/overfishing_monitor")
+def get_overfishing_data():
+    """
+    Returns sample overfishing monitoring data for testing.
+    In production, use POST endpoint with CSV upload.
+    """
+    from overfishing_analyze import get_sample_overfishing_data
+    return get_sample_overfishing_data()
+
+
+# 6️⃣ Overfishing Monitor - CSV Upload
+@app.post("/overfishing_monitor")
+async def analyze_overfishing_csv(file: UploadFile = File(...)):
+    """
+    Analyze overfishing from CSV data.
+    CSV must contain columns: Date, Stock_Volume, Catch_Volume
+    """
+    from overfishing_analyze import analyze_overfishing_from_csv
+
+    try:
+        df = pd.read_csv(file.file)
+        return analyze_overfishing_from_csv(df=df)
+    except ValueError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"Failed to process CSV: {str(e)}"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

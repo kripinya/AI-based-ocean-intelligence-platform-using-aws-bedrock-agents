@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
               <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🐟</div>
               <h3 className="text-2xl font-bold text-white mb-3">Fisheries</h3>
               <p className="text-white/70 mb-6 leading-relaxed">
-                Stock forecasting, overfishing monitoring, and species classification
+                Overfishing monitoring and species classification
               </p>
               <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <div className="flex justify-between items-center text-sm text-white/60">
