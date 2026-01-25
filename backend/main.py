@@ -1,12 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
-<<<<<<< HEAD
 from fastapi.middleware.cors import CORSMiddleware
-=======
-from backend.sst_predict import get_sst_forecast
->>>>>>> 1573a12 (Add SST prediction endpoint, ML inference API, CSV batch prediction, and Docker setup)
+from sst_predict import get_sst_forecast
 import pandas as pd
 from pydantic import BaseModel
-from backend.predict import predict_chlorophyll
+from predict import predict_chlorophyll
 
 app = FastAPI(title="Ocean Intelligence ML API")
 
