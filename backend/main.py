@@ -6,6 +6,7 @@ from pydantic import BaseModel
 # ML logic imports
 from predict import predict_chlorophyll
 from sst_predict import forecast_sst_from_csv
+from fish_classifier import load_model_and_labels, predict_fish_species
 
 # -----------------------------
 # App Initialization
@@ -23,6 +24,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -----------------------------
+# Startup Event
+# -----------------------------
+@app.on_event("startup")
+async def startup_event():
+    """Load ML models at application startup"""
+    print("🚀 Loading ML models...")
+    load_model_and_labels()
+    print("✅ All models loaded successfully!")
 
 # -----------------------------
 # Input Models
@@ -164,6 +175,42 @@ async def analyze_overfishing_csv(file: UploadFile = File(...)):
         return {"error": str(e)}
     except Exception as e:
         return {"error": f"Failed to process CSV: {str(e)}"}
+
+
+# 7️⃣ Fish Species Classification - Image Upload
+@app.post("/predict/fish_species")
+async def classify_fish_species(file: UploadFile = File(...)):
+    """
+    Classify fish species from an uploaded image.
+    
+    Accepts: JPG, PNG, WebP, and other common image formats
+    
+    Returns:
+        {
+            "species": str,
+            "confidence": float (0-100),
+            "top_predictions": dict (top 3 predictions with confidence)
+        }
+    """
+    from PIL import Image
+    import io
+    
+    try:
+        # Read image file
+        image_bytes = await file.read()
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Make prediction
+        result = predict_fish_species(image)
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "error": f"Failed to classify image: {str(e)}",
+            "species": "Error",
+            "confidence": 0.0
+        }
 
 
 if __name__ == "__main__":

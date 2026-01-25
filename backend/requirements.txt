@@ -5,3 +5,8 @@ numpy
 joblib
 pandas
 prophet
+torch
+torchvision
+timm
+Pillow
+python-multipart
