@@ -1,5 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
+<<<<<<< HEAD
 from fastapi.middleware.cors import CORSMiddleware
+=======
+from backend.sst_predict import get_sst_forecast
+>>>>>>> 1573a12 (Add SST prediction endpoint, ML inference API, CSV batch prediction, and Docker setup)
 import pandas as pd
 from pydantic import BaseModel
 from backend.predict import predict_chlorophyll
@@ -69,3 +73,6 @@ async def predict_from_csv(file: UploadFile = File(...)):
         response["actual_chlorophyll"] = df["chlorophyll"].tolist()
 
     return response
+@app.get("/predict/sst")
+def predict_sst():
+    return get_sst_forecast()
