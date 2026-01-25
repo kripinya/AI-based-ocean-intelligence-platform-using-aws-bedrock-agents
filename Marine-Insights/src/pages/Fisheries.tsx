@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 // @ts-ignore
 import Plot from 'plotly.js-dist';
 import { getJson, postFormData, imageUrl } from '../utils/api';
-import { mockForecastInteractive, mockFishClassification } from '../utils/mock';
+import { mockForecastInteractive, mockFishClassification, mockOverfishing } from '../utils/mock';
 
 const Fisheries: React.FC = () => {
   const [forecastData, setForecastData] = useState<any>(null);
+  const [overfishingData, setOverfishingData] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [classificationResult, setClassificationResult] = useState<any>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
@@ -26,7 +27,20 @@ const Fisheries: React.FC = () => {
       }
     };
 
+    const fetchOverfishingData = async () => {
+      try {
+        const data = await getJson<any>('/overfishing_monitor');
+        setOverfishingData(data);
+      } catch (error) {
+        console.log('Overfishing API not available, using mock data');
+        setOverfishingData(mockOverfishing());
+      } finally {
+        // no-op
+      }
+    };
+
     fetchForecastData();
+    fetchOverfishingData();
   }, []);
 
   useEffect(() => {
@@ -48,6 +62,15 @@ const Fisheries: React.FC = () => {
       });
     }
   }, [forecastData]);
+
+  useEffect(() => {
+    if (overfishingData) {
+      Plot.newPlot('overfishing-chart', overfishingData.data, overfishingData.layout, {
+        responsive: true,
+        displayModeBar: false
+      });
+    }
+  }, [overfishingData]);
 
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,28 +171,48 @@ const Fisheries: React.FC = () => {
           </div>
         </div>
 
-        {/* Overfishing Status */}
+        {/* Overfishing Status Monitor */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
             <span className="text-3xl mr-3">⚠️</span>
             Overfishing Status Monitor
           </h2>
-          <div className="bg-white/5 rounded-xl p-6 border border-white/10 text-center">
-            <img
-              src={imageUrl('/health-check')}
-              alt="Overfishing Status Chart"
-              className="max-w-full h-auto mx-auto rounded-lg"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const placeholder = target.nextElementSibling as HTMLElement;
-                if (placeholder) placeholder.style.display = 'block';
-              }}
-            />
-            <div className="hidden bg-white/10 rounded-lg p-8 border-2 border-dashed border-white/30">
-              <div className="text-6xl mb-4">📊</div>
-              <p className="text-white/70">Health check chart not available</p>
-              <p className="text-white/50 text-sm mt-2">Mock status: Monitoring active</p>
+          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+            {overfishingData ? (
+              <div id="overfishing-chart" style={{ height: '500px' }}></div>
+            ) : (
+              <div className="flex items-center justify-center h-96">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#F1C40F]"></div>
+              </div>
+            )}
+          </div>
+          <div className="mt-6 grid md:grid-cols-3 gap-4">
+            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+              <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Current Status</h3>
+              <p className="text-white/70 text-sm mb-2">Stock Volume: 21,942</p>
+              <p className="text-white/70 text-sm mb-2">Catch Volume: 5,583</p>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{width: '25%'}}></div>
+              </div>
+              <p className="text-white/50 text-xs mt-1">Overfishing Risk: High</p>
+            </div>
+            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+              <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Threshold Alert</h3>
+              <p className="text-white/70 text-sm mb-2">20% of Stock = 4,388</p>
+              <p className="text-white/70 text-sm mb-2">Current Catch: 5,583</p>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{width: '127%'}}></div>
+              </div>
+              <p className="text-white/50 text-xs mt-1">Exceeds threshold by 27%</p>
+            </div>
+            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+              <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Monthly Trend</h3>
+              <p className="text-white/70 text-sm mb-2">Overfishing Months: 14/24</p>
+              <p className="text-white/70 text-sm mb-2">Healthy Months: 10/24</p>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div className="bg-[#F1C40F] h-2 rounded-full" style={{width: '58%'}}></div>
+              </div>
+              <p className="text-white/50 text-xs mt-1">58% overfishing rate</p>
             </div>
           </div>
         </div>
