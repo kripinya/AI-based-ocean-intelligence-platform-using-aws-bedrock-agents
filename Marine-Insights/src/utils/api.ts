@@ -38,6 +38,7 @@ export async function postJson<T>(path: string, params?: QueryParams, body?: any
 	return res.json();
 }
 
+
 export async function postFormData<T>(path: string, params: QueryParams | undefined, formData: FormData, init?: RequestInit): Promise<T> {
 	const res = await fetch(buildUrl(path, params), {
 		method: 'POST',

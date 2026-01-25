@@ -7,9 +7,9 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  
+
   const isActive = (path: string) => location.pathname === path;
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#001F3F] via-[#003366] to-[#007B82]">
       {/* Navbar */}
@@ -24,7 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </span>
               </Link>
             </div>
-            
+
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2 text-white/60 text-sm">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -32,41 +32,37 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
               <Link
                 to="/dashboard"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  isActive('/dashboard')
-                    ? 'bg-white/20 text-white shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${isActive('/dashboard')
+                  ? 'bg-white/20 text-white shadow-lg'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
               >
                 Dashboard
               </Link>
               <Link
                 to="/ocean"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  isActive('/ocean')
-                    ? 'bg-white/20 text-white shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${isActive('/ocean')
+                  ? 'bg-white/20 text-white shadow-lg'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
               >
                 Ocean Data
               </Link>
               <Link
                 to="/fisheries"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  isActive('/fisheries')
-                    ? 'bg-white/20 text-white shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${isActive('/fisheries')
+                  ? 'bg-white/20 text-white shadow-lg'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
               >
                 Fisheries
               </Link>
               <Link
                 to="/biodiversity"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  isActive('/biodiversity')
-                    ? 'bg-white/20 text-white shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${isActive('/biodiversity')
+                  ? 'bg-white/20 text-white shadow-lg'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
               >
                 Biodiversity
               </Link>
