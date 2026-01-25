@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 // @ts-ignore
 import Plot from 'plotly.js-dist';
 import { getJson, postFormData } from '../utils/api';
-import { mockForecastInteractive, mockFishClassification, mockOverfishing } from '../utils/mock';
+import { mockFishClassification, mockOverfishing } from '../utils/mock';
 
 const Fisheries: React.FC = () => {
-  const [forecastData, setForecastData] = useState<any>(null);
+
   const [overfishingData, setOverfishingData] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [overfishingFile, setOverfishingFile] = useState<File | null>(null);
@@ -16,18 +16,6 @@ const Fisheries: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchForecastData = async () => {
-      try {
-        const data = await getJson<any>('/forecast_interactive');
-        setForecastData(data);
-      } catch (error) {
-        console.log('Forecast API not available, using mock data');
-        setForecastData(mockForecastInteractive());
-      } finally {
-        // no-op
-      }
-    };
-
     const fetchOverfishingData = async () => {
       try {
         const data = await getJson<any>('/overfishing_monitor');
@@ -40,7 +28,6 @@ const Fisheries: React.FC = () => {
       }
     };
 
-    fetchForecastData();
     fetchOverfishingData();
   }, []);
 
@@ -55,14 +42,7 @@ const Fisheries: React.FC = () => {
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
 
-  useEffect(() => {
-    if (forecastData) {
-      Plot.newPlot('forecast-chart', forecastData.data, forecastData.layout, {
-        responsive: true,
-        displayModeBar: false
-      });
-    }
-  }, [forecastData]);
+
 
   useEffect(() => {
     if (overfishingData) {
@@ -127,50 +107,12 @@ const Fisheries: React.FC = () => {
           Fisheries Management System
         </h1>
         <p className="text-white/80 text-lg max-w-2xl mx-auto leading-relaxed">
-          Supporting sustainable fishing through stock forecasting and species monitoring
+          Supporting sustainable fishing through overfishing monitoring and species classification
         </p>
       </div>
 
       <div className="space-y-12">
-        {/* Fish Stock Forecasting */}
-        <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-            <span className="text-3xl mr-3">📈</span>
-            Fish Stock Forecasting
-          </h2>
-          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-            {forecastData ? (
-              <div id="forecast-chart" style={{ height: '500px' }}></div>
-            ) : (
-              <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#F1C40F]"></div>
-              </div>
-            )}
-          </div>
-          <div className="mt-6 grid md:grid-cols-3 gap-4">
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Indian Mackerel</h3>
-              <p className="text-white/70 text-sm mb-2">Current stock: Declining</p>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{width: '35%'}}></div>
-              </div>
-            </div>
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Rohu</h3>
-              <p className="text-white/70 text-sm mb-2">Current stock: Stable</p>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div className="bg-[#2ECC71] h-2 rounded-full" style={{width: '75%'}}></div>
-              </div>
-            </div>
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Hilsa</h3>
-              <p className="text-white/70 text-sm mb-2">Current stock: At risk</p>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div className="bg-[#F1C40F] h-2 rounded-full" style={{width: '45%'}}></div>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Overfishing Status Monitor */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
@@ -178,7 +120,7 @@ const Fisheries: React.FC = () => {
             <span className="text-3xl mr-3">⚠️</span>
             Overfishing Status Monitor
           </h2>
-          
+
           {/* CSV Upload Section */}
           <div className="mb-6 backdrop-blur-md bg-white/5 rounded-xl p-6 border border-white/10">
             <h3 className="text-lg font-semibold text-white mb-4">Upload Fisheries Data</h3>
@@ -215,7 +157,7 @@ const Fisheries: React.FC = () => {
               CSV must contain columns: Date, Stock_Volume, Catch_Volume
             </p>
           </div>
-          
+
           <div className="bg-white/5 rounded-xl p-6 border border-white/10">
             {overfishingData ? (
               <div id="overfishing-chart" style={{ height: '500px' }}></div>
@@ -230,8 +172,8 @@ const Fisheries: React.FC = () => {
               <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Current Status</h3>
               <p className="text-white/70 text-sm mb-2">Stock Volume: 21,942</p>
               <p className="text-white/70 text-sm mb-2">Catch Volume: 5,583</p>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{width: '25%'}}></div>
+              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{ width: '25%' }}></div>
               </div>
               <p className="text-white/50 text-xs mt-1">Overfishing Risk: High</p>
             </div>
@@ -239,8 +181,8 @@ const Fisheries: React.FC = () => {
               <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Threshold Alert</h3>
               <p className="text-white/70 text-sm mb-2">20% of Stock = 4,388</p>
               <p className="text-white/70 text-sm mb-2">Current Catch: 5,583</p>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{width: '127%'}}></div>
+              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{ width: '100%' }}></div>
               </div>
               <p className="text-white/50 text-xs mt-1">Exceeds threshold by 27%</p>
             </div>
@@ -248,8 +190,8 @@ const Fisheries: React.FC = () => {
               <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Monthly Trend</h3>
               <p className="text-white/70 text-sm mb-2">Overfishing Months: 14/24</p>
               <p className="text-white/70 text-sm mb-2">Healthy Months: 10/24</p>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div className="bg-[#F1C40F] h-2 rounded-full" style={{width: '58%'}}></div>
+              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                <div className="bg-[#F1C40F] h-2 rounded-full" style={{ width: '58%' }}></div>
               </div>
               <p className="text-white/50 text-xs mt-1">58% overfishing rate</p>
             </div>
@@ -262,7 +204,7 @@ const Fisheries: React.FC = () => {
             <span className="text-3xl mr-3">🐟</span>
             Fish Species Classifier
           </h2>
-          
+
           <div className="grid md:grid-cols-2 gap-8">
             {/* Upload Section */}
             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
@@ -281,7 +223,7 @@ const Fisheries: React.FC = () => {
                   <p className="text-white/50 text-sm">Supports JPG, PNG, WebP</p>
                 </label>
               </div>
-              
+
               {selectedFile && (
                 <div className="mt-4">
                   <p className="text-white/80 mb-3">Selected: {selectedFile.name}</p>
@@ -306,7 +248,7 @@ const Fisheries: React.FC = () => {
             {/* Results Section */}
             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
               <h3 className="text-xl font-semibold text-white mb-4">Classification Results</h3>
-              
+
               {classifyError && (
                 <div className="bg-red-500/20 border border-red-400/30 text-red-200 rounded-lg p-4 mb-4">{classifyError}</div>
               )}
@@ -330,9 +272,9 @@ const Fisheries: React.FC = () => {
                           Confidence: <span className="font-semibold text-[#2ECC71]">{classificationResult.confidence}</span>
                         </p>
                         <div className="w-full bg-white/20 rounded-full h-3">
-                          <div 
+                          <div
                             className="bg-gradient-to-r from-[#2ECC71] to-[#00C9D9] h-3 rounded-full transition-all duration-1000"
-                            style={{width: (typeof classificationResult.confidence === 'string' ? classificationResult.confidence : '0%') }}
+                            style={{ width: (typeof classificationResult.confidence === 'string' ? classificationResult.confidence : '0%') }}
                           ></div>
                         </div>
                       </div>

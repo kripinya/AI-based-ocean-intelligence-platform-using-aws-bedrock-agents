@@ -53,6 +53,23 @@ def analyze_overfishing_from_csv(csv_path: str = None, df: pd.DataFrame = None):
                 "line": {"width": 0}
             })
 
+    # Create shapes for overfishing alerts
+    shapes = []
+    for i in overfishing_indices:
+        if i < len(dates):  # Safety check
+            shapes.append({
+                "type": "rect",
+                "xref": "x",
+                "yref": "paper",
+                "x0": dates[i],
+                "y0": 0,
+                "x1": dates[i],
+                "y1": 1,
+                "fillcolor": "rgba(255, 107, 107, 0.2)",
+                "opacity": 0.3,
+                "line": {"width": 0}
+            })
+
     return {
         "data": [
             {
