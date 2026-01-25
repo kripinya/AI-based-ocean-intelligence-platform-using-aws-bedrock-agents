@@ -116,3 +116,24 @@ def sst_info():
     return {
         "message": "Upload SST CSV to /predict/sst/csv with columns: date,value"
     }
+
+
+
+# AGENTIC ENDPOINT
+# -----------------------------
+from Agents.fisheries_agent import analyze_fisheries
+
+@app.get("/agentic/fisheries")
+def agentic_fisheries():
+    dummy_data = {
+        "summary": {
+            "overfishing_count": 128,
+            "healthy_count": 112
+        }
+    }
+
+    result = analyze_fisheries(dummy_data)
+
+    return {
+        "agentic_decision": result
+    }
