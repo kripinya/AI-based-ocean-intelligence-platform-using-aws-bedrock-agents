@@ -22,12 +22,12 @@ def load_model_and_labels():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Load labels
-    labels_path = os.path.join(os.path.dirname(__file__), 'labels.json')
+    labels_path = os.path.join(os.path.dirname(__file__), '../models/labels.json')
     with open(labels_path, 'r') as f:
         labels = json.load(f)
     
     # Load model
-    model_path = os.path.join(os.path.dirname(__file__), 'fish_classifier.pth')
+    model_path = os.path.join(os.path.dirname(__file__), '../models/fish_classifier.pth')
     
     # Create model architecture (using EfficientNet-B0 as base)
     # Adjust this if your model uses a different architecture

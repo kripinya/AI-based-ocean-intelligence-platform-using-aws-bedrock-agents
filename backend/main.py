@@ -4,9 +4,10 @@ import pandas as pd
 from pydantic import BaseModel
 
 # ML logic imports
-from predict import predict_chlorophyll
-from sst_predict import forecast_sst_from_csv
-from fish_classifier import load_model_and_labels, predict_fish_species
+from services.predict import predict_chlorophyll
+from services.sst_predict import forecast_sst_from_csv
+# fish_classifier imports moved to lazy loading (only when endpoint is called)
+# This speeds up server reload significantly
 
 # -----------------------------
 # App Initialization
@@ -28,12 +29,14 @@ app.add_middleware(
 # -----------------------------
 # Startup Event
 # -----------------------------
-@app.on_event("startup")
-async def startup_event():
-    """Load ML models at application startup"""
-    print("🚀 Loading ML models...")
-    load_model_and_labels()
-    print("✅ All models loaded successfully!")
+# Commented out to prevent server hanging on startup
+# The fish classifier model will load lazily on first use
+# @app.on_event("startup")
+# async def startup_event():
+#     """Load ML models at application startup"""
+#     print("🚀 Loading ML models...")
+#     load_model_and_labels()
+#     print("✅ All models loaded successfully!")
 
 # -----------------------------
 # Input Models
@@ -129,6 +132,30 @@ def sst_info():
     }
 
 
+
+# MULTI-AGENT ORCHESTRATION ENDPOINTS
+# -----------------------------
+from Agents.orchestrator import orchestrate, auto_route
+from Agents.overfishing_agent import analyze_overfishing
+
+@app.post("/orchestrate")
+async def orchestrate_request(input_type: str, data: dict):
+    """
+    Multi-agent orchestrator endpoint.
+    Routes requests to FisheriesAgent or OverfishingAgent based on input type.
+    
+    Args:
+        input_type: "image", "species_query", "telemetry", "telemetry_batch"
+        data: Input data for the agent
+    """
+    return orchestrate(input_type, data)
+
+@app.post("/auto_route")
+async def auto_route_request(data: dict):
+    """
+    Automatically detect input type and route to appropriate agent.
+    """
+    return auto_route(data)
 # 5️⃣ Overfishing Monitor - GET (Mock Data)
 @app.get("/overfishing_monitor")
 def get_overfishing_data():
@@ -136,33 +163,69 @@ def get_overfishing_data():
     Returns sample overfishing monitoring data for testing.
     In production, use POST endpoint with CSV upload.
     """
-    from overfishing_analyze import get_sample_overfishing_data
+    from services.overfishing_analyze import get_sample_overfishing_data
     return get_sample_overfishing_data()
 
 
-# 6️⃣ Overfishing Monitor - CSV Upload
+# 6️⃣ Overfishing Monitor - CSV Upload (with Multi-Agent Integration)
 @app.post("/overfishing_monitor")
 async def analyze_overfishing_csv(file: UploadFile = File(...)):
     """
-    Analyze overfishing from CSV data.
+    Analyze overfishing from CSV data using OverfishingAgent.
     CSV must contain columns: Date, Stock_Volume, Catch_Volume
+    
+    This endpoint now uses the multi-agent system for enhanced insights.
     """
-    from overfishing_analyze import analyze_overfishing_from_csv
+    from services.overfishing_analyze import analyze_overfishing_from_csv
 
     try:
         df = pd.read_csv(file.file)
-        return analyze_overfishing_from_csv(df=df)
+        
+        # Get visualization data
+        viz_data = analyze_overfishing_from_csv(df=df)
+        
+        # Use OverfishingAgent for AI-powered insights on the MOST SEVERE overfishing instance
+        agent_insights = None
+        max_violation_margin = -1
+        
+        for _, row in df.iterrows():
+            telemetry = {
+                "date": row.get("date", row.get("Date", "Unknown")),
+                "stock_volume": row.get("stock_volume", row.get("Stock_Volume", 0)),
+                "catch_volume": row.get("catch_volume", row.get("Catch_Volume", 0))
+            }
+            
+            # Use quick local check before calling full agent to save time
+            stock = telemetry["stock_volume"]
+            catch = telemetry["catch_volume"]
+            threshold = stock * 0.2
+            
+            if catch > threshold:
+                violation_margin = catch - threshold
+                
+                # Update if this is the most severe violation found so far
+                if violation_margin > max_violation_margin:
+                    max_violation_margin = violation_margin
+                    # Analyze this specific severe instance with the agent
+                    agent_insights = analyze_overfishing(telemetry)
+        
+        # Combine visualization data with agent insights
+        return {
+            "visualization": viz_data,
+            "agent_analysis": agent_insights
+        }
+        
     except ValueError as e:
         return {"error": str(e)}
     except Exception as e:
         return {"error": f"Failed to process CSV: {str(e)}"}
 
 
-# 7️⃣ Fish Species Classification - Image Upload
+# 7️⃣ Fish Species Classification - Image Upload (with Multi-Agent Integration)
 @app.post("/predict/fish_species")
 async def classify_fish_species(file: UploadFile = File(...)):
     """
-    Classify fish species from an uploaded image.
+    Classify fish species from an uploaded image using FisheriesAgent.
     
     Accepts: JPG, PNG, WebP, and other common image formats
     
@@ -170,21 +233,38 @@ async def classify_fish_species(file: UploadFile = File(...)):
         {
             "species": str,
             "confidence": float (0-100),
-            "top_predictions": dict (top 3 predictions with confidence)
+            "top_predictions": dict (top 3 predictions with confidence),
+            "biological_data": dict (from FisheriesAgent)
         }
     """
     from PIL import Image
     import io
     
     try:
+        # Lazy import to avoid loading heavy PyTorch on every reload
+        from services.fish_classifier import predict_fish_species
+        from Agents.fisheries_agent import classify_fish
+        
         # Read image file
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes))
         
-        # Make prediction
-        result = predict_fish_species(image)
+        # Make prediction using fish classifier
+        classifier_result = predict_fish_species(image)
         
-        return result
+        # Use FisheriesAgent to enrich with biological data
+        try:
+            agent_result = classify_fish(classifier_result)
+            return agent_result
+        except Exception as e:
+            print(f"⚠️ FisheriesAgent Error: {e}")
+            # Fallback to classifier result only
+            return {
+                "classification": classifier_result,
+                "biological_data": {
+                    "error": f"Failed to retrieve biological data: {str(e)}"
+                }
+            }
         
     except Exception as e:
         return {

@@ -1,8 +1,39 @@
 import React, { useEffect, useState } from 'react';
 // @ts-ignore
-import Plot from 'plotly.js-dist';
-import { getJson, postFormData } from '../utils/api';
-import { mockFishClassification, mockOverfishing } from '../utils/mock';
+import Plotly from 'plotly.js-dist';
+import { postFormData } from '../utils/api';
+import { mockFishClassification } from '../utils/mock';
+
+// Skeleton Loader Component
+const SkeletonLoader: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
+  <div className="space-y-3 animate-pulse">
+    {Array.from({ length: lines }).map((_, i) => (
+      <div key={i} className="h-4 bg-white/20 rounded-full" style={{ width: `${100 - i * 10}%` }}></div>
+    ))}
+  </div>
+);
+
+// Status Badge Component
+const StatusBadge: React.FC<{ status: 'CRITICAL' | 'SUSTAINABLE' | 'WARNING' }> = ({ status }) => {
+  const styles = {
+    CRITICAL: 'bg-red-500/30 border-red-400/50 text-red-200',
+    SUSTAINABLE: 'bg-green-500/30 border-green-400/50 text-green-200',
+    WARNING: 'bg-yellow-500/30 border-yellow-400/50 text-yellow-200'
+  };
+
+  const icons = {
+    CRITICAL: '🚨',
+    SUSTAINABLE: '✅',
+    WARNING: '⚠️'
+  };
+
+  return (
+    <div className={`inline-flex items-center px-4 py-2 rounded-full border ${styles[status]} font-semibold text-sm`}>
+      <span className="mr-2">{icons[status]}</span>
+      {status}
+    </div>
+  );
+};
 
 const Fisheries: React.FC = () => {
 
@@ -11,25 +42,12 @@ const Fisheries: React.FC = () => {
   const [overfishingFile, setOverfishingFile] = useState<File | null>(null);
   const [classificationResult, setClassificationResult] = useState<any>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
-  // Loading handled by presence of data; no separate state needed
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchOverfishingData = async () => {
-      try {
-        const data = await getJson<any>('/overfishing_monitor');
-        setOverfishingData(data);
-      } catch (error) {
-        console.log('Overfishing API not available, using mock data');
-        setOverfishingData(mockOverfishing());
-      } finally {
-        // no-op
-      }
-    };
-
-    fetchOverfishingData();
-  }, []);
+  const [agentInsights, setAgentInsights] = useState<any>(null);
+  const [showInsights, setShowInsights] = useState(false);
+  const [isProcessingAgent, setIsProcessingAgent] = useState(false);
+  const [isProcessingClassification, setIsProcessingClassification] = useState(false);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -42,17 +60,14 @@ const Fisheries: React.FC = () => {
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
 
-
-
   useEffect(() => {
     if (overfishingData) {
-      Plot.newPlot('overfishing-chart', overfishingData.data, overfishingData.layout, {
+      Plotly.newPlot('overfishing-chart', overfishingData.data, overfishingData.layout, {
         responsive: true,
         displayModeBar: false
       });
     }
   }, [overfishingData]);
-
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -66,37 +81,56 @@ const Fisheries: React.FC = () => {
     if (!selectedFile) return;
 
     setUploading(true);
+    setIsProcessingClassification(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
-      // Primary endpoint per documentation
+      // Call multi-agent backend endpoint
       const result = await postFormData<any>('/predict/fish_species', undefined, formData);
-      const confidenceStr = typeof result.confidence === 'number' ? `${result.confidence.toFixed(2)}%` : result.confidence;
-      setClassificationResult({ species: result.species, confidence: confidenceStr });
-      setClassifyError(null);
-    } catch (error) {
-      // Attempt known alternative routes present in the backend
-      try {
-        const result = await postFormData<any>('/classify/fish', undefined, formData);
-        const confidenceStr = typeof result.confidence === 'number' ? `${result.confidence.toFixed(2)}%` : result.confidence;
-        setClassificationResult({ species: result.predicted_class || result.species, confidence: confidenceStr });
+
+      // Handle new multi-agent response format
+      if (result.classification && result.biological_data) {
+        // New multi-agent format
+        const classification = result.classification;
+        const bioData = result.biological_data;
+
+        const confidenceStr = typeof classification.confidence === 'number'
+          ? `${classification.confidence.toFixed(2)}%`
+          : classification.confidence;
+
+        setClassificationResult({
+          species: classification.species,
+          confidence: confidenceStr,
+          top_predictions: classification.top_predictions,
+          conservation_status: bioData.biological_info || 'No biological information available.',
+          data_source: bioData.data_source
+        });
         setClassifyError(null);
-      } catch (e2) {
-        try {
-          const result = await postFormData<any>('/api/v1/fish/classify', undefined, formData);
-          const confidenceStr = typeof result.confidence === 'number' ? `${result.confidence.toFixed(2)}%` : result.confidence;
-          setClassificationResult({ species: result.predicted_class || result.species, confidence: confidenceStr });
-          setClassifyError(null);
-        } catch (e3) {
-          // Seamless mock fallback
-          const mock = mockFishClassification();
-          setClassificationResult(mock);
-          setClassifyError(null);
-        }
+      } else if (result.species && result.confidence !== undefined) {
+        // Old format (backward compatibility)
+        const confidenceStr = typeof result.confidence === 'number'
+          ? `${result.confidence.toFixed(2)}%`
+          : result.confidence;
+
+        setClassificationResult({
+          ...result,
+          species: result.species,
+          confidence: confidenceStr
+        });
+        setClassifyError(null);
+      } else {
+        throw new Error('Unexpected response format');
       }
+    } catch (error) {
+      console.error('Fish classification failed:', error);
+      // Seamless mock fallback
+      const mock = mockFishClassification();
+      setClassificationResult(mock);
+      setClassifyError(null);
     } finally {
       setUploading(false);
+      setIsProcessingClassification(false);
     }
   };
 
@@ -122,80 +156,323 @@ const Fisheries: React.FC = () => {
           </h2>
 
           {/* CSV Upload Section */}
-          <div className="mb-6 backdrop-blur-md bg-white/5 rounded-xl p-6 border border-white/10">
-            <h3 className="text-lg font-semibold text-white mb-4">Upload Fisheries Data</h3>
-            <div className="flex items-center space-x-4">
-              <input
-                type="file"
-                accept=".csv"
-                onChange={(e) => setOverfishingFile(e.target.files?.[0] || null)}
-                className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#F1C40F] focus:border-transparent"
-              />
+          <h3 className="text-lg font-semibold text-white mb-4">Upload Fisheries Data</h3>
+          <div className="mb-6 border-2 border-dashed border-white/30 rounded-lg p-8 text-center hover:border-[#F1C40F]/50 transition-colors duration-300">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setOverfishingFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="overfishing-csv-upload"
+            />
+            <label htmlFor="overfishing-csv-upload" className="cursor-pointer">
+              <div className="text-4xl mb-4">📊</div>
+              <p className="text-white/70 mb-2">Click to upload CSV file</p>
+              <p className="text-white/50 text-sm">Required columns: Date, Stock_Volume, Catch_Volume</p>
+            </label>
+          </div>
+
+          {overfishingFile && (
+            <div className="mb-6">
+              <p className="text-white/80 mb-3">Selected: {overfishingFile.name}</p>
               <button
                 onClick={async () => {
                   if (!overfishingFile) return;
                   setUploading(true);
+                  setIsProcessingAgent(true);
+                  setOverfishingData(null); // Clear previous data
+                  setAgentInsights(null);
                   try {
                     const formData = new FormData();
                     formData.append('file', overfishingFile);
                     const data = await postFormData<any>('/overfishing_monitor', undefined, formData);
-                    setOverfishingData(data);
+
+                    // Check if the response contains an error
+                    if (data.error) {
+                      alert(`Upload failed: ${data.error}`);
+                      console.error('Backend error:', data.error);
+                    } else {
+                      console.log('CSV uploaded successfully');
+                      console.log('Backend response:', JSON.stringify(data, null, 2));
+
+                      // Handle new multi-agent response format
+                      if (data.visualization && data.agent_analysis) {
+                        // New format: extract visualization data
+                        setOverfishingData(data.visualization);
+                        setAgentInsights(data.agent_analysis);
+
+                        // Log agent insights if overfishing detected
+                        if (data.agent_analysis && data.agent_analysis.is_overfishing) {
+                          console.log('🚨 Overfishing Detected!');
+                          console.log('Agent Insights:', data.agent_analysis.rag_insights);
+                          console.log('Recommendations:', data.agent_analysis.recommendations);
+                          setShowInsights(true); // Auto-expand insights when overfishing detected
+                        }
+                      } else {
+                        // Old format (backward compatibility)
+                        setOverfishingData(data);
+                        setAgentInsights(null);
+                      }
+                    }
                   } catch (error) {
-                    console.log('CSV upload failed, using mock data');
-                    setOverfishingData(mockOverfishing());
+                    console.error('CSV upload failed:', error);
+                    alert('Failed to upload CSV. Please check the file format and try again.');
                   } finally {
                     setUploading(false);
+                    setIsProcessingAgent(false);
                   }
                 }}
-                disabled={!overfishingFile || uploading}
-                className="px-6 py-2 bg-[#F1C40F] text-black font-semibold rounded-lg hover:bg-[#F1C40F]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={uploading}
+                className="w-full bg-gradient-to-r from-[#C9A000] to-[#F1C40F] hover:from-[#F1C40F] hover:to-[#C9A000] disabled:from-gray-600 disabled:to-gray-700 text-black font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
               >
-                {uploading ? 'Uploading...' : 'Upload CSV'}
+                {uploading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black mr-2"></div>
+                    Analyzing with AI Agents...
+                  </div>
+                ) : (
+                  'Analyze Overfishing Data'
+                )}
               </button>
             </div>
-            <p className="text-white/60 text-sm mt-2">
-              CSV must contain columns: Date, Stock_Volume, Catch_Volume
-            </p>
-          </div>
+          )}
 
-          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-            {overfishingData ? (
-              <div id="overfishing-chart" style={{ height: '500px' }}></div>
-            ) : (
-              <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#F1C40F]"></div>
+
+
+
+          {overfishingData && (() => {
+            // Extract data from the backend response
+            const stockVolumes: number[] = overfishingData.data[0]?.y || [];
+            const catchVolumes: number[] = overfishingData.data[1]?.y || [];
+            const thresholds: number[] = overfishingData.data[2]?.y || [];
+
+            // Calculate current (latest) values
+            const currentStock = stockVolumes[stockVolumes.length - 1] || 0;
+            const currentCatch = catchVolumes[catchVolumes.length - 1] || 0;
+            const currentThreshold = thresholds[thresholds.length - 1] || 0;
+
+            // Calculate overfishing statistics
+            const overfishingMonths = catchVolumes.filter((catchVol: number, idx: number) => {
+              const threshold = thresholds[idx];
+              return threshold !== undefined && catchVol > threshold;
+            }).length;
+            const totalMonths = catchVolumes.length;
+            const healthyMonths = totalMonths - overfishingMonths;
+            const overfishingRate = totalMonths > 0 ? Math.round((overfishingMonths / totalMonths) * 100) : 0;
+
+            // Calculate threshold excess
+            const thresholdExcess = currentThreshold > 0
+              ? Math.round(((currentCatch - currentThreshold) / currentThreshold) * 100)
+              : 0;
+
+            // Determine risk level
+            const riskLevel = overfishingRate > 50 ? 'High' : overfishingRate > 30 ? 'Medium' : 'Low';
+            const riskColor = overfishingRate > 50 ? '#FF6B6B' : overfishingRate > 30 ? '#F1C40F' : '#2ECC71';
+
+            return (
+              <>
+                <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                  <div id="overfishing-chart" style={{ height: '500px' }}></div>
+                </div>
+
+                <div className="mt-6 grid md:grid-cols-3 gap-4">
+                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Current Status</h3>
+                    <p className="text-white/70 text-sm mb-2">Stock Volume: {currentStock.toLocaleString()}</p>
+                    <p className="text-white/70 text-sm mb-2">Catch Volume: {currentCatch.toLocaleString()}</p>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${currentStock > 0 ? Math.min((currentCatch / currentStock) * 100, 100) : 0}%`,
+                          backgroundColor: riskColor
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">Overfishing Risk: {riskLevel}</p>
+                  </div>
+
+                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Threshold Alert</h3>
+                    <p className="text-white/70 text-sm mb-2">20% of Stock = {currentThreshold.toLocaleString()}</p>
+                    <p className="text-white/70 text-sm mb-2">Current Catch: {currentCatch.toLocaleString()}</p>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-[#FF6B6B] h-2 rounded-full"
+                        style={{ width: `${currentThreshold > 0 ? Math.min((currentCatch / currentThreshold) * 100, 100) : 0}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">
+                      {thresholdExcess > 0
+                        ? `Exceeds threshold by ${thresholdExcess}%`
+                        : `Within safe limits`}
+                    </p>
+                  </div>
+
+                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Monthly Trend</h3>
+                    <p className="text-white/70 text-sm mb-2">Overfishing Months: {overfishingMonths}/{totalMonths}</p>
+                    <p className="text-white/70 text-sm mb-2">Healthy Months: {healthyMonths}/{totalMonths}</p>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${overfishingRate}%`,
+                          backgroundColor: riskColor
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">{overfishingRate}% overfishing rate</p>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+
+
+          {/* Processing Skeleton Loader */}
+          {isProcessingAgent && !agentInsights && (
+            <div className="mt-6 backdrop-blur-md bg-white/10 rounded-xl p-6 border border-white/20">
+              <div className="flex items-center mb-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#F1C40F] mr-3"></div>
+                <h3 className="text-lg font-semibold text-white">AI Agent Processing Documents...</h3>
               </div>
-            )}
-          </div>
-          <div className="mt-6 grid md:grid-cols-3 gap-4">
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#2ECC71] mb-2">Current Status</h3>
-              <p className="text-white/70 text-sm mb-2">Stock Volume: 21,942</p>
-              <p className="text-white/70 text-sm mb-2">Catch Volume: 5,583</p>
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{ width: '25%' }}></div>
-              </div>
-              <p className="text-white/50 text-xs mt-1">Overfishing Risk: High</p>
+              <p className="text-white/60 text-sm mb-4">Reading FAO reports and legal documents from vector database</p>
+              <SkeletonLoader lines={4} />
             </div>
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#F1C40F] mb-2">Threshold Alert</h3>
-              <p className="text-white/70 text-sm mb-2">20% of Stock = 4,388</p>
-              <p className="text-white/70 text-sm mb-2">Current Catch: 5,583</p>
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div className="bg-[#FF6B6B] h-2 rounded-full" style={{ width: '100%' }}></div>
+          )}
+
+          {/* Enhanced AI Insights Panel */}
+          {agentInsights && (
+            <div className="mt-6 backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 rounded-2xl p-8 border border-white/20 shadow-2xl">
+              {/* Header with Status Badge */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <span className="text-3xl mr-3">🤖</span>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">AI Agentic Insights</h3>
+                    <p className="text-white/60 text-sm">Powered by RAG + Multi-Agent System</p>
+                  </div>
+                </div>
+                <StatusBadge status={agentInsights.is_overfishing ? 'CRITICAL' : 'SUSTAINABLE'} />
               </div>
-              <p className="text-white/50 text-xs mt-1">Exceeds threshold by 27%</p>
-            </div>
-            <div className="backdrop-blur-md bg-white/10 rounded-lg p-4 border border-white/10">
-              <h3 className="text-lg font-semibold text-[#00C9D9] mb-2">Monthly Trend</h3>
-              <p className="text-white/70 text-sm mb-2">Overfishing Months: 14/24</p>
-              <p className="text-white/70 text-sm mb-2">Healthy Months: 10/24</p>
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div className="bg-[#F1C40F] h-2 rounded-full" style={{ width: '58%' }}></div>
+
+              {/* Sustainability Status Card */}
+              <div className={`rounded-xl p-6 mb-6 border-2 ${agentInsights.is_overfishing
+                ? 'bg-red-500/20 border-red-400/50'
+                : 'bg-green-500/20 border-green-400/50'
+                }`}>
+                <div className="flex items-start">
+                  <span className="text-4xl mr-4">{agentInsights.is_overfishing ? '⚠️' : '✅'}</span>
+                  <div className="flex-1">
+                    <h4 className="text-xl font-bold text-white mb-2">
+                      {agentInsights.status || (agentInsights.is_overfishing ? 'OVERFISHING DETECTED' : 'SUSTAINABLE FISHING')}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-white/60 text-xs mb-1">Catch Volume</p>
+                        <p className="text-white font-bold text-lg">{agentInsights.catch_volume?.toLocaleString() || 'N/A'}</p>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-white/60 text-xs mb-1">Threshold (20% of Stock)</p>
+                        <p className="text-white font-bold text-lg">{agentInsights.threshold?.toLocaleString() || 'N/A'}</p>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-white/60 text-xs mb-1">Catch Percentage</p>
+                        <p className={`font-bold text-lg ${agentInsights.is_overfishing ? 'text-red-300' : 'text-green-300'}`}>
+                          {agentInsights.catch_percentage || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-white/50 text-xs mt-1">58% overfishing rate</p>
+
+              {/* Legal Warning Section - Only show if overfishing */}
+              {agentInsights.is_overfishing && (
+                <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl p-6 mb-6 border border-orange-400/30">
+                  <div className="flex items-start">
+                    <span className="text-3xl mr-3">⚖️</span>
+                    <div>
+                      <h4 className="text-lg font-bold text-orange-200 mb-2">Legal Warning</h4>
+                      <p className="text-white/80 text-sm leading-relaxed">
+                        Current fishing practices exceed sustainable thresholds as defined by FAO Code of Conduct for Responsible Fisheries.
+                        Continued overfishing may result in regulatory penalties, fishing quota reductions, or license suspension.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Expandable Mitigation Plan */}
+              <button
+                onClick={() => setShowInsights(!showInsights)}
+                className="w-full bg-white/10 hover:bg-white/15 rounded-xl p-4 mb-6 border border-white/20 transition-all duration-300 text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="text-2xl mr-3">📋</span>
+                    <div>
+                      <h4 className="text-lg font-semibold text-white">View Mitigation Plan & FAO Regulations</h4>
+                      <p className="text-white/60 text-sm">Click to expand AI-generated recommendations</p>
+                    </div>
+                  </div>
+                  <span
+                    className="text-2xl text-white transition-transform duration-300"
+                    style={{ transform: showInsights ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  >
+                    ▼
+                  </span>
+                </div>
+              </button>
+
+              {/* Expanded Insights */}
+              {showInsights && (
+                <div className="space-y-6 animate-fadeIn">
+                  {/* RAG Insights from FAO Reports */}
+                  {agentInsights.rag_insights && (
+                    <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                      <h4 className="text-lg font-semibold text-[#F1C40F] mb-4 flex items-center">
+                        <span className="mr-2">📚</span>
+                        FAO Regulations & Legal Consequences
+                      </h4>
+                      <div className="text-white/80 text-sm whitespace-pre-line max-h-96 overflow-y-auto pr-2 custom-scrollbar leading-relaxed bg-black/20 rounded-lg p-4">
+                        {agentInsights.rag_insights}
+                      </div>
+                      {/* Source Citation */}
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <div className="flex items-center text-white/50 text-xs">
+                          <span className="mr-2">🔗</span>
+                          <span className="font-semibold mr-2">Source:</span>
+                          <span>FAO Code of Conduct (i9540en.pdf), Global Fisheries Standards, Legal Database</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {agentInsights.recommendations && agentInsights.recommendations.length > 0 && (
+                    <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                      <h4 className="text-lg font-semibold text-[#2ECC71] mb-4 flex items-center">
+                        <span className="mr-2">✅</span>
+                        Recommended Mitigation Actions
+                      </h4>
+                      <div className="space-y-3">
+                        {agentInsights.recommendations.map((rec: string, idx: number) => (
+                          <div key={idx} className="flex items-start bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors duration-200">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#2ECC71]/30 flex items-center justify-center text-[#2ECC71] font-bold text-xs mr-3 mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <span className="text-white/80 text-sm leading-relaxed">{rec}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Fish Species Classification */}
@@ -253,13 +530,25 @@ const Fisheries: React.FC = () => {
                 <div className="bg-red-500/20 border border-red-400/30 text-red-200 rounded-lg p-4 mb-4">{classifyError}</div>
               )}
 
-              {classificationResult ? (
+              {/* Processing Skeleton Loader */}
+              {isProcessingClassification && !classificationResult && (
                 <div className="space-y-4">
-                  <div className="backdrop-blur-md bg-white/10 rounded-lg p-6 border border-white/20">
+                  <div className="flex items-center mb-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#00C9D9] mr-3"></div>
+                    <p className="text-white/70 text-sm">AI Agent analyzing fish species...</p>
+                  </div>
+                  <SkeletonLoader lines={3} />
+                </div>
+              )}
+
+              {classificationResult ? (
+                <div className="space-y-6">
+                  {/* Main Classification Card */}
+                  <div className="backdrop-blur-md bg-white/10 rounded-xl p-6 border border-white/20">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
                       <div className="sm:col-span-1">
                         {previewUrl ? (
-                          <img src={previewUrl} alt="Uploaded fish" className="w-full h-40 object-cover rounded-lg border border-white/20" />
+                          <img src={previewUrl} alt="Uploaded fish" className="w-full h-40 object-cover rounded-lg border border-white/20 shadow-lg" />
                         ) : (
                           <div className="w-full h-40 flex items-center justify-center bg-white/5 rounded-lg border border-white/10">🐟</div>
                         )}
@@ -280,18 +569,81 @@ const Fisheries: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white/10 rounded-lg p-4 border border-white/10">
-                    <h5 className="font-semibold text-white mb-2">Species Information</h5>
-                    <p className="text-white/70 text-sm">
-                      Classification completed using advanced machine learning models trained on marine species datasets.
-                    </p>
+
+                  {/* Scientific Profile Grid */}
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/10">
+                    <h5 className="font-semibold text-white mb-4 flex items-center">
+                      <span className="mr-2">🔬</span>
+                      Scientific Profile
+                    </h5>
+
+                    {/* Information Grid Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      {/* Habitat Card */}
+                      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg p-4 border border-blue-400/30">
+                        <div className="flex items-center mb-2">
+                          <span className="text-2xl mr-2">🌊</span>
+                          <h6 className="font-semibold text-white text-sm">Habitat</h6>
+                        </div>
+                        <p className="text-white/80 text-xs leading-relaxed">
+                          Marine waters, typically found in tropical and subtropical regions
+                        </p>
+                      </div>
+
+                      {/* Conservation Status Card */}
+                      <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-400/30">
+                        <div className="flex items-center mb-2">
+                          <span className="text-2xl mr-2">🛡️</span>
+                          <h6 className="font-semibold text-white text-sm">Conservation Status</h6>
+                        </div>
+                        <p className="text-white/80 text-xs leading-relaxed">
+                          Varies by species - consult IUCN Red List for specific status
+                        </p>
+                      </div>
+
+                      {/* Commercial Value Card */}
+                      <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-400/30">
+                        <div className="flex items-center mb-2">
+                          <span className="text-2xl mr-2">💰</span>
+                          <h6 className="font-semibold text-white text-sm">Commercial Value</h6>
+                        </div>
+                        <p className="text-white/80 text-xs leading-relaxed">
+                          Important for commercial fisheries and aquaculture
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Detailed Biological Information */}
+                    <div className="bg-black/20 rounded-lg p-4">
+                      <h6 className="font-semibold text-white/90 text-sm mb-3">Biological Information</h6>
+                      <div className="text-white/70 text-sm whitespace-pre-line max-h-60 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
+                        {classificationResult.conservation_status || "No additional insights available."}
+                      </div>
+                    </div>
+
+                    {/* Source Citation */}
+                    {classificationResult.data_source && (
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <div className="flex items-center text-white/50 text-xs">
+                          <span className="mr-2">🔗</span>
+                          <span className="font-semibold mr-2">Source:</span>
+                          <span>
+                            {classificationResult.data_source === 'fisheries_biology_collection'
+                              ? '🐟 Fisheries Biology Database (RAG)'
+                              : 'Multi-Agent Classification System'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-white/50 py-12">
-                  <div className="text-4xl mb-4">🔍</div>
-                  <p>Upload an image to classify fish species</p>
-                </div>
+                !isProcessingClassification && (
+                  <div className="text-center text-white/50 py-12">
+                    <div className="text-4xl mb-4">🔍</div>
+                    <p>Upload an image to classify fish species</p>
+                  </div>
+                )
               )}
             </div>
           </div>

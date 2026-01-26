@@ -1,3 +1,22 @@
 __pycache__/
 .DS_Store
+__pycache__/
+*.pyc
+
+# RAG / Vector DB
+backend/chroma_db_fisheries/
+*.sqlite3
+*.bin
+
+# PDFs (RAG docs)
+backend/rag/data/
+
+# Python cache
+__pycache__/
+*.pyc
+
+.env
+
+# Virtual environment
+.venv*
 .env
