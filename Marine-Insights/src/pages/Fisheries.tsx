@@ -14,6 +14,8 @@ const Fisheries: React.FC = () => {
   // Loading handled by presence of data; no separate state needed
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [agentInsights, setAgentInsights] = useState<any>(null);
+  const [showInsights, setShowInsights] = useState(false);
 
   // Removed automatic data loading - graph will only show after CSV upload
 
@@ -56,31 +58,48 @@ const Fisheries: React.FC = () => {
     formData.append('file', selectedFile);
 
     try {
-      // Primary endpoint per documentation
+      // Call multi-agent backend endpoint
       const result = await postFormData<any>('/predict/fish_species', undefined, formData);
-      const confidenceStr = typeof result.confidence === 'number' ? `${result.confidence.toFixed(2)}%` : result.confidence;
-      setClassificationResult({ ...result, species: result.species, confidence: confidenceStr });
-      setClassifyError(null);
-    } catch (error) {
-      // Attempt known alternative routes present in the backend
-      try {
-        const result = await postFormData<any>('/classify/fish', undefined, formData);
-        const confidenceStr = typeof result.confidence === 'number' ? `${result.confidence.toFixed(2)}%` : result.confidence;
-        setClassificationResult({ ...result, species: result.predicted_class || result.species, confidence: confidenceStr });
+
+      // Handle new multi-agent response format
+      if (result.classification && result.biological_data) {
+        // New multi-agent format
+        const classification = result.classification;
+        const bioData = result.biological_data;
+
+        const confidenceStr = typeof classification.confidence === 'number'
+          ? `${classification.confidence.toFixed(2)}%`
+          : classification.confidence;
+
+        setClassificationResult({
+          species: classification.species,
+          confidence: confidenceStr,
+          top_predictions: classification.top_predictions,
+          conservation_status: bioData.biological_info || 'No biological information available.',
+          data_source: bioData.data_source
+        });
         setClassifyError(null);
-      } catch (e2) {
-        try {
-          const result = await postFormData<any>('/api/v1/fish/classify', undefined, formData);
-          const confidenceStr = typeof result.confidence === 'number' ? `${result.confidence.toFixed(2)}%` : result.confidence;
-          setClassificationResult({ ...result, species: result.predicted_class || result.species, confidence: confidenceStr });
-          setClassifyError(null);
-        } catch (e3) {
-          // Seamless mock fallback
-          const mock = mockFishClassification();
-          setClassificationResult(mock);
-          setClassifyError(null);
-        }
+      } else if (result.species && result.confidence !== undefined) {
+        // Old format (backward compatibility)
+        const confidenceStr = typeof result.confidence === 'number'
+          ? `${result.confidence.toFixed(2)}%`
+          : result.confidence;
+
+        setClassificationResult({
+          ...result,
+          species: result.species,
+          confidence: confidenceStr
+        });
+        setClassifyError(null);
+      } else {
+        throw new Error('Unexpected response format');
       }
+    } catch (error) {
+      console.error('Fish classification failed:', error);
+      // Seamless mock fallback
+      const mock = mockFishClassification();
+      setClassificationResult(mock);
+      setClassifyError(null);
     } finally {
       setUploading(false);
     }
@@ -144,7 +163,25 @@ const Fisheries: React.FC = () => {
                     } else {
                       console.log('CSV uploaded successfully');
                       console.log('Backend response:', JSON.stringify(data, null, 2));
-                      setOverfishingData(data);
+
+                      // Handle new multi-agent response format
+                      if (data.visualization && data.agent_analysis) {
+                        // New format: extract visualization data
+                        setOverfishingData(data.visualization);
+                        setAgentInsights(data.agent_analysis);
+
+                        // Log agent insights if overfishing detected
+                        if (data.agent_analysis && data.agent_analysis.is_overfishing) {
+                          console.log('🚨 Overfishing Detected!');
+                          console.log('Agent Insights:', data.agent_analysis.rag_insights);
+                          console.log('Recommendations:', data.agent_analysis.recommendations);
+                          setShowInsights(true); // Auto-expand insights when overfishing detected
+                        }
+                      } else {
+                        // Old format (backward compatibility)
+                        setOverfishingData(data);
+                        setAgentInsights(null);
+                      }
                     }
                   } catch (error) {
                     console.error('CSV upload failed:', error);
@@ -259,6 +296,78 @@ const Fisheries: React.FC = () => {
               </>
             );
           })()}
+
+          {/* AI Insights Section - NEW */}
+          {agentInsights && agentInsights.is_overfishing && (
+            <div className="mt-6 backdrop-blur-md bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl p-6 border border-red-400/30">
+              <button
+                onClick={() => setShowInsights(!showInsights)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">🤖</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">AI Agentic Insights</h3>
+                    <p className="text-white/70 text-sm">Click to view FAO regulations & legal consequences</p>
+                  </div>
+                </div>
+                <span className="text-2xl text-white transition-transform duration-300" style={{ transform: showInsights ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  ▼
+                </span>
+              </button>
+
+              {showInsights && (
+                <div className="mt-6 space-y-4 animate-fadeIn">
+                  {/* Status Banner */}
+                  <div className="bg-red-500/30 border border-red-400/50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <span className="text-3xl mr-3">⚠️</span>
+                      <div>
+                        <h4 className="text-lg font-bold text-white">{agentInsights.status}</h4>
+                        <p className="text-white/80 text-sm">
+                          Catch Volume: {agentInsights.catch_volume?.toLocaleString()} exceeds threshold of {agentInsights.threshold?.toLocaleString()} ({agentInsights.catch_percentage}% of stock)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RAG Insights from FAO Reports */}
+                  {agentInsights.rag_insights && (
+                    <div className="bg-white/10 rounded-lg p-6 border border-white/20">
+                      <h4 className="text-lg font-semibold text-[#F1C40F] mb-3 flex items-center">
+                        <span className="mr-2">📚</span>
+                        FAO Regulations & Legal Consequences
+                      </h4>
+                      <div className="text-white/80 text-sm whitespace-pre-line max-h-96 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
+                        {agentInsights.rag_insights}
+                      </div>
+                      <p className="text-white/50 text-xs mt-3">
+                        Source: FAO Reports, Legal Code of Conduct (i9540en.pdf), Global Standards
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {agentInsights.recommendations && agentInsights.recommendations.length > 0 && (
+                    <div className="bg-white/10 rounded-lg p-6 border border-white/20">
+                      <h4 className="text-lg font-semibold text-[#2ECC71] mb-3 flex items-center">
+                        <span className="mr-2">✅</span>
+                        Recommended Actions
+                      </h4>
+                      <ul className="space-y-2">
+                        {agentInsights.recommendations.map((rec: string, idx: number) => (
+                          <li key={idx} className="flex items-start text-white/80 text-sm">
+                            <span className="mr-2 text-[#2ECC71] font-bold">•</span>
+                            <span>{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Fish Species Classification */}
@@ -344,13 +453,15 @@ const Fisheries: React.FC = () => {
                     </div>
                   </div>
                   <div className="bg-white/10 rounded-lg p-4 border border-white/10">
-                    <h5 className="font-semibold text-white mb-2">Species Information</h5>
-                    <p className="text-white/70 text-sm">
-                      <h5 className="font-semibold text-white mb-2">Species Insight (RAG Agent)</h5>
-                      <div className="text-white/70 text-sm whitespace-pre-line max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                        {classificationResult.conservation_status || "No additional insights available."}
-                      </div>
-                    </p>
+                    <h5 className="font-semibold text-white mb-2">Species Biological Information</h5>
+                    <div className="text-white/70 text-sm whitespace-pre-line max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                      {classificationResult.conservation_status || "No additional insights available."}
+                    </div>
+                    {classificationResult.data_source && (
+                      <p className="text-white/50 text-xs mt-2">
+                        Source: {classificationResult.data_source === 'fisheries_biology_collection' ? '🐟 Fisheries Biology Database' : 'Multi-Agent System'}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (

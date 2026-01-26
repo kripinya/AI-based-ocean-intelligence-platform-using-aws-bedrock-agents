@@ -133,24 +133,29 @@ def sst_info():
 
 
 
-# AGENTIC ENDPOINT 
+# MULTI-AGENT ORCHESTRATION ENDPOINTS
 # -----------------------------
-from Agents.fisheries_agent import analyze_fisheries
+from Agents.orchestrator import orchestrate, auto_route
+from Agents.overfishing_agent import analyze_overfishing
 
-@app.get("/agentic/fisheries")
-def agentic_fisheries():
-    dummy_data = {
-        "summary": {
-            "overfishing_count": 128,
-            "healthy_count": 112
-        }
-    }
+@app.post("/orchestrate")
+async def orchestrate_request(input_type: str, data: dict):
+    """
+    Multi-agent orchestrator endpoint.
+    Routes requests to FisheriesAgent or OverfishingAgent based on input type.
+    
+    Args:
+        input_type: "image", "species_query", "telemetry", "telemetry_batch"
+        data: Input data for the agent
+    """
+    return orchestrate(input_type, data)
 
-    result = analyze_fisheries(dummy_data)
-
-    return {
-        "agentic_decision": result
-    }
+@app.post("/auto_route")
+async def auto_route_request(data: dict):
+    """
+    Automatically detect input type and route to appropriate agent.
+    """
+    return auto_route(data)
 # 5️⃣ Overfishing Monitor - GET (Mock Data)
 @app.get("/overfishing_monitor")
 def get_overfishing_data():
@@ -162,29 +167,53 @@ def get_overfishing_data():
     return get_sample_overfishing_data()
 
 
-# 6️⃣ Overfishing Monitor - CSV Upload
+# 6️⃣ Overfishing Monitor - CSV Upload (with Multi-Agent Integration)
 @app.post("/overfishing_monitor")
 async def analyze_overfishing_csv(file: UploadFile = File(...)):
     """
-    Analyze overfishing from CSV data.
+    Analyze overfishing from CSV data using OverfishingAgent.
     CSV must contain columns: Date, Stock_Volume, Catch_Volume
+    
+    This endpoint now uses the multi-agent system for enhanced insights.
     """
     from overfishing_analyze import analyze_overfishing_from_csv
 
     try:
         df = pd.read_csv(file.file)
-        return analyze_overfishing_from_csv(df=df)
+        
+        # Get visualization data
+        viz_data = analyze_overfishing_from_csv(df=df)
+        
+        # Use OverfishingAgent for AI-powered insights on first overfishing instance
+        agent_insights = None
+        for _, row in df.iterrows():
+            telemetry = {
+                "date": row.get("date", row.get("Date", "Unknown")),
+                "stock_volume": row.get("stock_volume", row.get("Stock_Volume", 0)),
+                "catch_volume": row.get("catch_volume", row.get("Catch_Volume", 0))
+            }
+            result = analyze_overfishing(telemetry)
+            if result.get("is_overfishing"):
+                agent_insights = result
+                break  # Only get insights for first overfishing instance
+        
+        # Combine visualization data with agent insights
+        return {
+            "visualization": viz_data,
+            "agent_analysis": agent_insights
+        }
+        
     except ValueError as e:
         return {"error": str(e)}
     except Exception as e:
         return {"error": f"Failed to process CSV: {str(e)}"}
 
 
-# 7️⃣ Fish Species Classification - Image Upload
+# 7️⃣ Fish Species Classification - Image Upload (with Multi-Agent Integration)
 @app.post("/predict/fish_species")
 async def classify_fish_species(file: UploadFile = File(...)):
     """
-    Classify fish species from an uploaded image.
+    Classify fish species from an uploaded image using FisheriesAgent.
     
     Accepts: JPG, PNG, WebP, and other common image formats
     
@@ -192,7 +221,8 @@ async def classify_fish_species(file: UploadFile = File(...)):
         {
             "species": str,
             "confidence": float (0-100),
-            "top_predictions": dict (top 3 predictions with confidence)
+            "top_predictions": dict (top 3 predictions with confidence),
+            "biological_data": dict (from FisheriesAgent)
         }
     """
     from PIL import Image
@@ -201,30 +231,28 @@ async def classify_fish_species(file: UploadFile = File(...)):
     try:
         # Lazy import to avoid loading heavy PyTorch on every reload
         from fish_classifier import predict_fish_species
+        from Agents.fisheries_agent import classify_fish
         
         # Read image file
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes))
         
-        # Make prediction
-        result = predict_fish_species(image)
+        # Make prediction using fish classifier
+        classifier_result = predict_fish_species(image)
         
-        # RAG Integration: Get Conservation Status
+        # Use FisheriesAgent to enrich with biological data
         try:
-            from rag.rag_engine import run_fisheries_agent
-            species = result.get("species", "Unknown")
-            if species and species != "Unknown" and species != "Error":
-                print(f"🔎 Running RAG for: {species}")
-                insight = run_fisheries_agent(f"What is the conservation status, habitat, and key characteristics of {species}?")
-                result["conservation_status"] = insight
-            else:
-                result["conservation_status"] = "No species identified for conservation search."
+            agent_result = classify_fish(classifier_result)
+            return agent_result
         except Exception as e:
-            error_msg = str(e)
-            print(f"⚠️ RAG Agent Error: {error_msg}")
-            result["conservation_status"] = f"Error retrieving status: {error_msg}"
-
-        return result
+            print(f"⚠️ FisheriesAgent Error: {e}")
+            # Fallback to classifier result only
+            return {
+                "classification": classifier_result,
+                "biological_data": {
+                    "error": f"Failed to retrieve biological data: {str(e)}"
+                }
+            }
         
     except Exception as e:
         return {

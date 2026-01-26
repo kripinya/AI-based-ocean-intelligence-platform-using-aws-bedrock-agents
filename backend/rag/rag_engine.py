@@ -15,18 +15,26 @@ if not api_key:
 
 client = Groq(api_key=api_key)
 
-def generate_fisheries_insight(user_query):
+def generate_fisheries_insight(user_query, collection="fisheries"):
     """
-    Uses Groq with Llama 3 to generate insights based on local ChromaDB context.
-    """
-    # 1. Get context from your local PDFs via ChromaDB
-    context = search_context(user_query)
+    Uses Groq with Llama 3 to generate insights based on fisheries data.
     
-    # 2. Build the prompt
-    system_prompt = "You are a Marine Expert. Use the provided scientific context to answer queries."
+    Args:
+        user_query: Question about fish species, biology, habitat
+        collection: Collection to search (default: "fisheries")
+    """
+    # Get context from fisheries ChromaDB
+    context = search_context(
+        user_query, 
+        db_path="./chroma_db_fisheries",
+        collection_name=None  # Use default collection in fisheries DB
+    )
+    
+    # Build the prompt
+    system_prompt = "You are a Marine Biologist Expert. Use the provided scientific context about fish species, biology, and habitats to answer queries."
     full_prompt = f"Context:\n{context}\n\nUser Query: {user_query}"
 
-    # 3. Call Groq API (using Llama-3-8b for speed)
+    # Call Groq API
     chat_completion = client.chat.completions.create(
         messages=[
             {"role": "system", "content": system_prompt},
@@ -37,6 +45,37 @@ def generate_fisheries_insight(user_query):
 
     return chat_completion.choices[0].message.content
 
-# Aliases for compatibility and user request
+
+def generate_overfishing_insight(user_query):
+    """
+    Uses Groq with Llama 3 to generate insights based on overfishing policy/legal data.
+    
+    Args:
+        user_query: Question about overfishing regulations, sustainability, legal consequences
+    """
+    # Get context from overfishing ChromaDB
+    context = search_context(
+        user_query,
+        db_path="./chroma_db_overfishing",
+        collection_name=None  # Use default collection in overfishing DB
+    )
+    
+    # Build the prompt
+    system_prompt = "You are a Fisheries Policy and Legal Expert. Use the provided context from FAO reports and legal documents to answer queries about overfishing regulations, sustainability practices, and legal consequences."
+    full_prompt = f"Context:\n{context}\n\nUser Query: {user_query}"
+
+    # Call Groq API
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": full_prompt},
+        ],
+        model="llama-3.1-8b-instant",
+    )
+
+    return chat_completion.choices[0].message.content
+
+
+# Aliases for compatibility
 run_fisheries_agent = generate_fisheries_insight
 rag_query = generate_fisheries_insight
