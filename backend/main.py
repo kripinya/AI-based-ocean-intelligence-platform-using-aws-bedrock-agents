@@ -220,8 +220,9 @@ async def classify_fish_species(file: UploadFile = File(...)):
             else:
                 result["conservation_status"] = "No species identified for conservation search."
         except Exception as e:
-            print(f"⚠️ RAG Agent Error: {str(e)}")
-            result["conservation_status"] = "Conservation status currently unavailable."
+            error_msg = str(e)
+            print(f"⚠️ RAG Agent Error: {error_msg}")
+            result["conservation_status"] = f"Error retrieving status: {error_msg}"
 
         return result
         
