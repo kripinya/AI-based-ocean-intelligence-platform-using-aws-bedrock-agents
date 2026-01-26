@@ -221,7 +221,92 @@ async def analyze_overfishing_csv(file: UploadFile = File(...)):
         return {"error": f"Failed to process CSV: {str(e)}"}
 
 
-# 7️⃣ Fish Species Classification - Image Upload (with Multi-Agent Integration)
+# 7️⃣ eDNA Analysis - Sequence Upload with GenAI
+@app.post("/api/v1/edna/analyze")
+async def analyze_edna_sequence(file: UploadFile = File(...)):
+    """
+    Analyze eDNA sequence from FASTA/FASTQ file using GenAI.
+    
+    Accepts: .fasta, .fastq, .fa, .fq files
+    
+    Returns:
+        {
+            "species_scientific": str,
+            "species_common": str,
+            "confidence": float (0-100),
+            "genetic_markers": list,
+            "invasive_status": str,
+            "characteristics": dict,
+            "ecological_role": str,
+            "interesting_facts": list
+        }
+    """
+    from services.edna_analyzer import analyze_edna_file
+    
+    try:
+        # Read file content
+        file_content = await file.read()
+        file_text = file_content.decode('utf-8')
+        
+        # Analyze eDNA sequence
+        analysis = analyze_edna_file(file_text)
+        
+        return {
+            "success": True,
+            "analysis": analysis,
+            "detected_species": [{
+                "species": analysis.get("species_common", "Unknown"),
+                "confidence": analysis.get("confidence", 0),
+                "invasive": analysis.get("invasive_status") == "invasive",
+                "sequenceId": analysis.get("sequence_metadata", {}).get("sequence_id", "Unknown")
+            }],
+            "invasive_species": [{
+                "species": analysis.get("species_common", "Unknown")
+            }] if analysis.get("invasive_status") == "invasive" else []
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to analyze eDNA sequence: {str(e)}"
+        }
+
+
+class ChatRequest(BaseModel):
+    species_data: dict
+    question: str
+
+@app.post("/api/v1/edna/chat")
+async def chat_about_edna_species(request: ChatRequest):
+    """
+    Interactive chatbot for asking questions about analyzed species.
+    
+    Args:
+        request: ChatRequest object containing species_data and question
+        
+    Returns:
+        {
+            "question": str,
+            "answer": str,
+            "conversation_length": int
+        }
+    """
+    from services.edna_analyzer import chat_with_species
+    
+    try:
+        response = chat_with_species(request.species_data, request.question)
+        return {
+            "success": True,
+            **response
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Chat error: {str(e)}"
+        }
+
+
+# 8️⃣ Fish Species Classification - Image Upload (with Multi-Agent Integration)
 @app.post("/predict/fish_species")
 async def classify_fish_species(file: UploadFile = File(...)):
     """
