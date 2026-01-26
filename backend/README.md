@@ -103,3 +103,39 @@ docker run -p 8000:8000 ocean-ml-api
 ⸻
 
 ✅ Backend ML, API, and Docker setup are complete and ready for integration.
+
+⸻
+
+4️⃣ Fish Species Classification (Image Upload)
+
+POST /predict/fish_species
+
+Description: Upload an image to classify the fish species using EfficientNet-B0.
+
+Classes: Sea Bass, Red Mullet, Horse Mackerel, Shrimp, etc. (9 classes)
+
+Request:
+- Method: POST
+- Content-Type: multipart/form-data
+- Body: Image file (JPG, PNG, WebP)
+
+Response:
+```json
+{
+  "species": "Sea Bass",
+  "confidence": 95.67,
+  "top_predictions": {
+    "Sea Bass": 95.67,
+    "Gilt Head Bream": 3.21,
+    "Red Sea Bream": 1.12
+  }
+}
+```
+
+Usage (cURL):
+```bash
+curl -X POST "http://localhost:8000/predict/fish_species" \
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@fish_image.jpg"
+```

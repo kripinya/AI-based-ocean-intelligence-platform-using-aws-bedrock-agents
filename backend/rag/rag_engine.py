@@ -26,7 +26,7 @@ def generate_fisheries_insight(user_query, collection="fisheries"):
     # Get context from fisheries ChromaDB
     context = search_context(
         user_query, 
-        db_path="./chroma_db_fisheries",
+        db_path="rag/database/chroma_db_fisheries",
         collection_name=None  # Use default collection in fisheries DB
     )
     
@@ -60,7 +60,7 @@ def generate_overfishing_insight(user_query, search_query=None):
     # Get context from overfishing ChromaDB
     context = search_context(
         query_for_search,
-        db_path="./chroma_db_overfishing",
+        db_path="rag/database/chroma_db_overfishing",
         collection_name=None  # Use default collection in overfishing DB
     )
     

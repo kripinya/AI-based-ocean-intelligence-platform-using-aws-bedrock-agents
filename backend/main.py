@@ -4,8 +4,8 @@ import pandas as pd
 from pydantic import BaseModel
 
 # ML logic imports
-from predict import predict_chlorophyll
-from sst_predict import forecast_sst_from_csv
+from services.predict import predict_chlorophyll
+from services.sst_predict import forecast_sst_from_csv
 # fish_classifier imports moved to lazy loading (only when endpoint is called)
 # This speeds up server reload significantly
 
@@ -163,7 +163,7 @@ def get_overfishing_data():
     Returns sample overfishing monitoring data for testing.
     In production, use POST endpoint with CSV upload.
     """
-    from overfishing_analyze import get_sample_overfishing_data
+    from services.overfishing_analyze import get_sample_overfishing_data
     return get_sample_overfishing_data()
 
 
@@ -176,7 +176,7 @@ async def analyze_overfishing_csv(file: UploadFile = File(...)):
     
     This endpoint now uses the multi-agent system for enhanced insights.
     """
-    from overfishing_analyze import analyze_overfishing_from_csv
+    from services.overfishing_analyze import analyze_overfishing_from_csv
 
     try:
         df = pd.read_csv(file.file)
@@ -242,7 +242,7 @@ async def classify_fish_species(file: UploadFile = File(...)):
     
     try:
         # Lazy import to avoid loading heavy PyTorch on every reload
-        from fish_classifier import predict_fish_species
+        from services.fish_classifier import predict_fish_species
         from Agents.fisheries_agent import classify_fish
         
         # Read image file
