@@ -1,5 +1,6 @@
 import boto3
 import json
+import os
 
 client = boto3.client("bedrock-runtime", region_name="us-east-1")
 
@@ -21,3 +22,9 @@ def call_bedrock(prompt: str) -> str:
 
     result = json.loads(response["body"].read())
     return result["content"][0]["text"]
+
+def get_bedrock_agent_runtime():
+    return boto3.client(
+        "bedrock-agent-runtime",
+        region_name=os.getenv("AWS_REGION", "us-east-1"),
+    )
