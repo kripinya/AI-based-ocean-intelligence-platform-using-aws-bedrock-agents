@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { postFormData } from '../utils/api';
+import { postFormData, API_BASE_URL } from '../utils/api';
 import { mockEdnaAnalyze } from '../utils/mock';
 
 interface SpeciesResult {
@@ -113,7 +113,7 @@ const Biodiversity: React.FC = () => {
 
     try {
       // Call chat API
-      const response = await fetch('http://localhost:8000/api/v1/edna/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/edna/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
