@@ -20,23 +20,40 @@ session = get_boto3_session()
 client = session.client("bedrock-runtime")
 
 def call_bedrock(prompt: str) -> str:
+    # Using Amazon Nova Micro as per Hackathon guidelines
+    # Only Amazon models are allowed (Nova, Titan)
+    model_id = "amazon.nova-micro-v1:0"
+    
     body = {
-        "anthropic_version": "bedrock-2023-05-31",
+        "inferenceConfig": {
+            "max_new_tokens": 1000
+        },
         "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "max_tokens": 500
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
     }
 
-    response = client.invoke_model(
-        modelId="anthropic.claude-3-sonnet-20240229-v1:0",
-        body=json.dumps(body),
-        contentType="application/json",
-        accept="application/json"
-    )
+    try:
+        response = client.invoke_model(
+            modelId=model_id,
+            body=json.dumps(body),
+            contentType="application/json",
+            accept="application/json"
+        )
 
-    result = json.loads(response["body"].read())
-    return result["content"][0]["text"]
+        result = json.loads(response["body"].read())
+        # Parse Nova response format
+        return result["output"]["message"]["content"][0]["text"]
+        
+    except Exception as e:
+        return f"Error calling AWS Bedrock ({model_id}): {str(e)}"
 
 def get_bedrock_agent_runtime():
     """Get bedrock-agent-runtime client with credentials from environment."""
