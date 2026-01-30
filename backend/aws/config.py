@@ -3,8 +3,8 @@
 import os
 from dotenv import load_dotenv
 
-# Always load backend/.env explicitly
-load_dotenv("backend/.env")
+# Load .env from backend directory
+load_dotenv(".env")
 
 # =========================
 # AWS CORE CONFIG

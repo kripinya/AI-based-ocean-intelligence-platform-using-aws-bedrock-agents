@@ -1,8 +1,8 @@
 # backend/aws/agents.py
 
 import uuid
-from backend.aws.bedrock_client import get_bedrock_agent_runtime
-from backend.aws.config import (
+from aws.bedrock_client import get_bedrock_agent_runtime
+from aws.config import (
     FISHERIES_AGENT_ID,
     FISHERIES_AGENT_ALIAS_ID,
     OVERFISHING_AGENT_ID,

@@ -359,6 +359,130 @@ async def classify_fish_species(file: UploadFile = File(...)):
         }
 
 
+# 9️⃣ AWS Bedrock Agents - Fisheries Intelligence
+class AgentQuery(BaseModel):
+    query: str
+
+@app.post("/api/aws/fisheries-agent")
+async def query_fisheries_bedrock_agent(request: AgentQuery):
+    """
+    Query the AWS Bedrock Fisheries Agent for AI-powered fisheries insights.
+    
+    Args:
+        query: Natural language question about fisheries, fish species, or stock management
+        
+    Returns:
+        {
+            "success": bool,
+            "response": str,
+            "agent": "fisheries"
+        }
+    
+    Example queries:
+        - "What are the best practices for sustainable tuna fishing?"
+        - "Analyze the health indicators for this fish species"
+        - "What conservation measures should be taken for overfished stocks?"
+    """
+    try:
+        from aws.agents import invoke_fisheries_agent
+        
+        response = invoke_fisheries_agent(request.query)
+        
+        return {
+            "success": True,
+            "response": response,
+            "agent": "fisheries",
+            "query": request.query
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Fisheries Agent error: {str(e)}",
+            "agent": "fisheries"
+        }
+
+
+@app.post("/api/aws/overfishing-agent")
+async def query_overfishing_bedrock_agent(request: AgentQuery):
+    """
+    Query the AWS Bedrock Overfishing Agent for conservation insights.
+    
+    Args:
+        query: Natural language question about overfishing patterns or conservation
+        
+    Returns:
+        {
+            "success": bool,
+            "response": str,
+            "agent": "overfishing"
+        }
+    
+    Example queries:
+        - "What are the signs of overfishing in this region?"
+        - "Recommend conservation strategies for depleted fish stocks"
+        - "Analyze the sustainability of current catch rates"
+    """
+    try:
+        from aws.agents import invoke_overfishing_agent
+        
+        response = invoke_overfishing_agent(request.query)
+        
+        return {
+            "success": True,
+            "response": response,
+            "agent": "overfishing",
+            "query": request.query
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Overfishing Agent error: {str(e)}",
+            "agent": "overfishing"
+        }
+
+
+@app.get("/api/aws/agents/status")
+async def check_aws_agents_status():
+    """
+    Check if AWS Bedrock Agents are properly configured.
+    
+    Returns configuration status and available agents.
+    """
+    try:
+        from aws.config import (
+            FISHERIES_AGENT_ID,
+            FISHERIES_AGENT_ALIAS_ID,
+            OVERFISHING_AGENT_ID,
+            OVERFISHING_AGENT_ALIAS_ID,
+            AWS_REGION
+        )
+        
+        fisheries_configured = bool(FISHERIES_AGENT_ID and FISHERIES_AGENT_ALIAS_ID)
+        overfishing_configured = bool(OVERFISHING_AGENT_ID and OVERFISHING_AGENT_ALIAS_ID)
+        
+        return {
+            "aws_region": AWS_REGION,
+            "agents": {
+                "fisheries": {
+                    "configured": fisheries_configured,
+                    "agent_id": FISHERIES_AGENT_ID if fisheries_configured else None,
+                    "status": "ready" if fisheries_configured else "not configured"
+                },
+                "overfishing": {
+                    "configured": overfishing_configured,
+                    "agent_id": OVERFISHING_AGENT_ID if overfishing_configured else None,
+                    "status": "ready" if overfishing_configured else "not configured"
+                }
+            },
+            "overall_status": "operational" if (fisheries_configured and overfishing_configured) else "partial"
+        }
+    except Exception as e:
+        return {
+            "error": f"Configuration check failed: {str(e)}",
+            "overall_status": "error"
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
