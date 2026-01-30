@@ -6,11 +6,39 @@ export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE || '';
 type QueryParams = Record<string, string | number | boolean | undefined | null>;
 
 export function buildUrl(path: string, params?: QueryParams): string {
-    // If path is absolute, use it directly. If relative, append to API_BASE_URL (which might be empty).
-    // If API_BASE_URL is empty, we construct a URL relative to window.location.origin to use the URL object,
-    // then strip the origin to return a relative path that triggers the proxy.
-    const base = path.startsWith('http') ? undefined : (API_BASE_URL || window.location.origin);
-    const url = new URL(path.startsWith('http') ? path : `${API_BASE_URL}${path}`, base);
+    if (path.startsWith('http')) {
+        const url = new URL(path);
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    url.searchParams.set(key, String(value));
+                }
+            });
+        }
+        return url.toString();
+    }
+
+    // Ensure path doesn't have double leading slashes
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+    // API_BASE_URL is /api from .env
+    // We want to avoid /api//path or /api/api/path
+    const base = API_BASE_URL || '';
+
+    // Construct the result path
+    let fullPath = '';
+    if (cleanPath.startsWith('/api/')) {
+        // Path already has /api/, just use it
+        fullPath = cleanPath;
+    } else {
+        // Prepend base if it exists
+        fullPath = base ? `${base}${cleanPath}` : cleanPath;
+    }
+
+    // Clean up any double slashes that might have been created
+    fullPath = fullPath.replace(/\/+/g, '/');
+
+    const url = new URL(fullPath, window.location.origin);
 
     if (params) {
         Object.entries(params).forEach(([key, value]) => {
@@ -20,11 +48,6 @@ export function buildUrl(path: string, params?: QueryParams): string {
         });
     }
 
-    // Return full string if absolute or if we have an explicit API base.
-    // Return relative path (pathname + search) if we are using the proxy (empty API base).
-    if (path.startsWith('http') || API_BASE_URL) {
-        return url.toString();
-    }
     return url.pathname + url.search;
 }
 

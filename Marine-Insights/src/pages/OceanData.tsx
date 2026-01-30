@@ -59,15 +59,16 @@ const OceanData: React.FC = () => {
     try {
       const result = await postFormData<PredictionData>('/predict/csv', undefined, formData);
 
-      if ('error' in result) {
+      if (result && 'error' in (result as any)) {
         setError((result as any).error);
         setPredictionData(null);
       } else {
         setPredictionData(result);
         setError(null);
       }
-    } catch (err) {
-      setError('Failed to upload and predict. Make sure backend is running on port 8000.');
+    } catch (err: any) {
+      console.error('Chlorophyll prediction error:', err);
+      setError(err.message || 'Failed to upload and predict sequence.');
       setPredictionData(null);
     } finally {
       setLoading(false);
@@ -95,15 +96,16 @@ const OceanData: React.FC = () => {
     try {
       const result = await postFormData<SSTForecastData>('/predict/sst/csv', undefined, formData);
 
-      if ('error' in result) {
-        setSstError((result as { error: string }).error);
+      if (result && 'error' in (result as any)) {
+        setSstError((result as any).error);
         setSstForecastData(null);
       } else {
         setSstForecastData(result);
         setSstError(null);
       }
-    } catch (err) {
-      setSstError('Failed to upload and forecast. Make sure backend is running on port 8000.');
+    } catch (err: any) {
+      console.error('SST forecast error:', err);
+      setSstError(err.message || 'Failed to upload and forecast SST.');
       setSstForecastData(null);
     } finally {
       setSstLoading(false);

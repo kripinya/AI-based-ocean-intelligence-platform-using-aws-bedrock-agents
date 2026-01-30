@@ -238,9 +238,9 @@ const Fisheries: React.FC = () => {
                         setAgentInsights(null);
                       }
                     }
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('CSV upload failed:', error);
-                    alert('Failed to upload CSV. Please check the file format and try again.');
+                    alert(`Failed to upload CSV: ${error.message || 'Unknown error'}`);
                   } finally {
                     setUploading(false);
                     setIsProcessingAgent(false);

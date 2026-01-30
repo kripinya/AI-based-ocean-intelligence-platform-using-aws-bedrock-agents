@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { postFormData, API_BASE_URL } from '../utils/api';
+import { postFormData, buildUrl } from '../utils/api';
 import { mockEdnaAnalyze } from '../utils/mock';
 import {
   Dna,
@@ -86,7 +86,7 @@ const Biodiversity: React.FC = () => {
         analysis: SpeciesAnalysis;
         detected_species: SpeciesResult[];
         invasive_species: { species: string }[];
-      }>('/api/v1/edna/analyze', undefined, formData);
+      }>('/v1/edna/analyze', undefined, formData);
 
       if (result.detected_species) {
         setAnalysisResults(result.detected_species);
@@ -132,7 +132,7 @@ const Biodiversity: React.FC = () => {
 
     try {
       // Call chat API
-      const response = await fetch(`${API_BASE_URL}/api/v1/edna/chat`, {
+      const response = await fetch(buildUrl('/v1/edna/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
