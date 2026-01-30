@@ -69,6 +69,7 @@ const Fisheries: React.FC = () => {
   const [showAgentPanel, setShowAgentPanel] = useState(false);
   const [isProcessingAgent, setIsProcessingAgent] = useState(false);
   const [isProcessingClassification, setIsProcessingClassification] = useState(false);
+  const [showScientificProfile, setShowScientificProfile] = useState(false);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -624,67 +625,81 @@ const Fisheries: React.FC = () => {
 
             {/* Bottom Row: Scientific Profile */}
             {classificationResult && (
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10 animate-fadeIn">
-                <h5 className="font-semibold text-white mb-6 flex items-center text-xl">
-                  <Microscope className="w-6 h-6 mr-3 text-white" />
-                  Scientific Profile & Biological Data
-                </h5>
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10 animate-fadeIn transition-all duration-300">
+                <button
+                  onClick={() => setShowScientificProfile(!showScientificProfile)}
+                  className="w-full flex items-center justify-between group focus:outline-none mb-4"
+                >
+                  <h5 className="font-semibold text-white flex items-center text-xl group-hover:text-[#F1C40F] transition-colors">
+                    <Microscope className="w-6 h-6 mr-3 text-white group-hover:text-[#F1C40F] transition-colors" />
+                    Scientific Profile & Biological Data
+                  </h5>
+                  {showScientificProfile ? (
+                    <ChevronUp className="w-6 h-6 text-white/50 group-hover:text-white" />
+                  ) : (
+                    <ChevronDown className="w-6 h-6 text-white/50 group-hover:text-white" />
+                  )}
+                </button>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {/* Habitat Card */}
-                  <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-6 border border-blue-400/30">
-                    <div className="flex items-center mb-3">
-                      <Waves className="w-8 h-8 mr-3 text-blue-300" />
-                      <h6 className="font-bold text-white text-lg">Habitat</h6>
+                {showScientificProfile && (
+                  <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      {/* Habitat Card */}
+                      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-6 border border-blue-400/30">
+                        <div className="flex items-center mb-3">
+                          <Waves className="w-8 h-8 mr-3 text-blue-300" />
+                          <h6 className="font-bold text-white text-lg">Habitat</h6>
+                        </div>
+                        <p className="text-white/80 text-sm leading-relaxed">
+                          Marine waters, typically found in tropical and subtropical regions
+                        </p>
+                      </div>
+
+                      {/* Conservation Status Card */}
+                      <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-6 border border-green-400/30">
+                        <div className="flex items-center mb-3">
+                          <ShieldCheck className="w-8 h-8 mr-3 text-green-300" />
+                          <h6 className="font-bold text-white text-lg">Conservation Status</h6>
+                        </div>
+                        <p className="text-white/80 text-sm leading-relaxed">
+                          Varies by species - consult IUCN Red List for specific status
+                        </p>
+                      </div>
+
+                      {/* Commercial Value Card */}
+                      <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl p-6 border border-yellow-400/30">
+                        <div className="flex items-center mb-3">
+                          <Coins className="w-8 h-8 mr-3 text-yellow-300" />
+                          <h6 className="font-bold text-white text-lg">Commercial Value</h6>
+                        </div>
+                        <p className="text-white/80 text-sm leading-relaxed">
+                          Important for commercial fisheries and aquaculture
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      Marine waters, typically found in tropical and subtropical regions
-                    </p>
-                  </div>
 
-                  {/* Conservation Status Card */}
-                  <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-6 border border-green-400/30">
-                    <div className="flex items-center mb-3">
-                      <ShieldCheck className="w-8 h-8 mr-3 text-green-300" />
-                      <h6 className="font-bold text-white text-lg">Conservation Status</h6>
+                    {/* Detailed Biological Information */}
+                    <div className="bg-black/20 rounded-xl p-6 mb-6">
+                      <h6 className="font-semibold text-white/90 text-lg mb-4">Detailed Biological Information</h6>
+                      <div className="text-white/70 text-sm whitespace-pre-line max-h-60 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
+                        {classificationResult.conservation_status || "No additional insights available."}
+                      </div>
                     </div>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      Varies by species - consult IUCN Red List for specific status
-                    </p>
-                  </div>
 
-                  {/* Commercial Value Card */}
-                  <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl p-6 border border-yellow-400/30">
-                    <div className="flex items-center mb-3">
-                      <Coins className="w-8 h-8 mr-3 text-yellow-300" />
-                      <h6 className="font-bold text-white text-lg">Commercial Value</h6>
-                    </div>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      Important for commercial fisheries and aquaculture
-                    </p>
-                  </div>
-                </div>
-
-                {/* Detailed Biological Information */}
-                <div className="bg-black/20 rounded-xl p-6 mb-6">
-                  <h6 className="font-semibold text-white/90 text-lg mb-4">Detailed Biological Information</h6>
-                  <div className="text-white/70 text-sm whitespace-pre-line max-h-60 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
-                    {classificationResult.conservation_status || "No additional insights available."}
-                  </div>
-                </div>
-
-                {/* Source Citation */}
-                {classificationResult.data_source && (
-                  <div className="pt-4 border-t border-white/10">
-                    <div className="flex items-center text-white/50 text-sm">
-                      <Link2 className="w-4 h-4 mr-2" />
-                      <span className="font-semibold mr-2">Source:</span>
-                      <span>
-                        {classificationResult.data_source === 'fisheries_biology_collection'
-                          ? <><Fish className="w-4 h-4 mr-1 inline" /> Fisheries Biology Database (RAG)</>
-                          : 'Multi-Agent Classification System'}
-                      </span>
-                    </div>
+                    {/* Source Citation */}
+                    {classificationResult.data_source && (
+                      <div className="pt-4 border-t border-white/10">
+                        <div className="flex items-center text-white/50 text-sm">
+                          <Link2 className="w-4 h-4 mr-2" />
+                          <span className="font-semibold mr-2">Source:</span>
+                          <span>
+                            {classificationResult.data_source === 'fisheries_biology_collection'
+                              ? <><Fish className="w-4 h-4 mr-1 inline" /> Fisheries Biology Database (RAG)</>
+                              : 'Multi-Agent Classification System'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

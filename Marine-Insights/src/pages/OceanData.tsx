@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Upload, FileText, CheckCircle, BarChart2, Activity, Globe, Thermometer, TrendingUp, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 // @ts-ignore
 import Plot from 'plotly.js-dist';
 import { postFormData } from '../utils/api';
@@ -34,6 +35,9 @@ const OceanData: React.FC = () => {
   const [sstForecastData, setSstForecastData] = useState<SSTForecastData | null>(null);
   const [sstLoading, setSstLoading] = useState(false);
   const [sstError, setSstError] = useState<string | null>(null);
+
+  // Toggle state for 3D chart
+  const [show3DChart, setShow3DChart] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -240,58 +244,69 @@ const OceanData: React.FC = () => {
         });
       }
 
-      // Chart 3: 3D Scatter (Depth, Salinity, pH vs Chlorophyll)
-      Plot.newPlot('3d-scatter-chart', [{
-        x: predictionData.depth,
-        y: predictionData.salinity,
-        z: predictionData.ph,
-        mode: 'markers',
-        type: 'scatter3d',
-        marker: {
-          size: 5,
-          color: predictionData.predicted_chlorophyll,
-          colorscale: 'Viridis',
-          showscale: true,
-          colorbar: {
-            title: 'Chlorophyll',
-            titlefont: { color: 'white' },
-            tickfont: { color: 'white' }
-          }
-        }
-      }], {
-        title: {
-          text: '3D Environmental Parameters Visualization',
-          font: { size: 18, color: 'white', family: 'Inter, sans-serif' }
-        },
-        scene: {
-          xaxis: {
-            title: { text: 'Depth (meters)', font: { color: 'white', size: 12 } },
-            gridcolor: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            tickfont: { color: 'white', size: 10 }
-          },
-          yaxis: {
-            title: { text: 'Salinity (PSU)', font: { color: 'white', size: 12 } },
-            gridcolor: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            tickfont: { color: 'white', size: 10 }
-          },
-          zaxis: {
-            title: { text: 'pH Level', font: { color: 'white', size: 12 } },
-            gridcolor: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            tickfont: { color: 'white', size: 10 }
-          },
-          bgcolor: 'rgba(0,0,0,0)'
-        },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        font: { color: 'white' }
-      }, {
-        responsive: true,
-        displayModeBar: false
-      });
     }
   }, [predictionData]);
+
+  // Effect to plot 3D chart when visible
+  useEffect(() => {
+    if (predictionData && show3DChart) {
+      // Small timeout to ensure DOM is ready
+      const timer = setTimeout(() => {
+        Plot.newPlot('3d-scatter-chart', [{
+          x: predictionData.depth,
+          y: predictionData.salinity,
+          z: predictionData.ph,
+          mode: 'markers',
+          type: 'scatter3d',
+          marker: {
+            size: 5,
+            color: predictionData.predicted_chlorophyll,
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: {
+              title: 'Chlorophyll',
+              titlefont: { color: 'white' },
+              tickfont: { color: 'white' }
+            }
+          }
+        }], {
+          title: {
+            text: '3D Environmental Parameters Visualization',
+            font: { size: 18, color: 'white', family: 'Inter, sans-serif' }
+          },
+          scene: {
+            xaxis: {
+              title: { text: 'Depth (meters)', font: { color: 'white', size: 12 } },
+              gridcolor: 'rgba(255,255,255,0.1)',
+              color: 'white',
+              tickfont: { color: 'white', size: 10 }
+            },
+            yaxis: {
+              title: { text: 'Salinity (PSU)', font: { color: 'white', size: 12 } },
+              gridcolor: 'rgba(255,255,255,0.1)',
+              color: 'white',
+              tickfont: { color: 'white', size: 10 }
+            },
+            zaxis: {
+              title: { text: 'pH Level', font: { color: 'white', size: 12 } },
+              gridcolor: 'rgba(255,255,255,0.1)',
+              color: 'white',
+              tickfont: { color: 'white', size: 10 }
+            },
+            bgcolor: 'rgba(0,0,0,0)'
+          },
+          paper_bgcolor: 'rgba(0,0,0,0)',
+          font: { color: 'white' },
+          margin: { l: 0, r: 0, b: 0, t: 30 }
+        }, {
+          responsive: true,
+          displayModeBar: false
+        });
+      }, 100); // 100ms delay to allow for animation/rendering
+
+      return () => clearTimeout(timer);
+    }
+  }, [predictionData, show3DChart]);
 
   // Create SST forecast chart when data is available
   useEffect(() => {
@@ -387,7 +402,7 @@ const OceanData: React.FC = () => {
         {/* CSV Upload Section */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-            <span className="text-3xl mr-3">📤</span>
+            <Upload className="w-8 h-8 mr-3 text-[#00C9D9]" />
             Upload Ocean Data
           </h2>
 
@@ -403,7 +418,9 @@ const OceanData: React.FC = () => {
                   id="csv-upload"
                 />
                 <label htmlFor="csv-upload" className="cursor-pointer">
-                  <div className="text-4xl mb-4">📊</div>
+                  <div className="flex justify-center mb-4">
+                    <FileText className="w-12 h-12 text-[#00C9D9]/80" />
+                  </div>
                   <p className="text-white/70 mb-2">Click to upload CSV file</p>
                   <p className="text-white/50 text-sm">Required columns: Depth, Salinity, pH, Chlorophyll (optional)</p>
                 </label>
@@ -433,21 +450,27 @@ const OceanData: React.FC = () => {
               <h3 className="text-xl font-semibold text-white mb-4">How It Works</h3>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#00C9D9] text-xl">1️⃣</div>
+                  <div className="text-[#00C9D9] p-1 bg-[#00C9D9]/10 rounded-full mt-1">
+                    <Upload className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Upload CSV</p>
                     <p className="text-white/70 text-sm">Prepare a CSV with ocean parameters</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#2ECC71] text-xl">2️⃣</div>
+                  <div className="text-[#2ECC71] p-1 bg-[#2ECC71]/10 rounded-full mt-1">
+                    <Activity className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">ML Prediction</p>
                     <p className="text-white/70 text-sm">Random Forest model predicts chlorophyll</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#F1C40F] text-xl">3️⃣</div>
+                  <div className="text-[#F1C40F] p-1 bg-[#F1C40F]/10 rounded-full mt-1">
+                    <BarChart2 className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Visualize Results</p>
                     <p className="text-white/70 text-sm">Interactive charts show predictions</p>
@@ -458,9 +481,12 @@ const OceanData: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mt-6 bg-red-500/20 border border-red-400/30 text-red-200 rounded-lg p-4">
-              <p className="font-semibold mb-1">❌ Error</p>
-              <p className="text-sm">{error}</p>
+            <div className="mt-6 bg-red-500/20 border border-red-400/30 text-red-200 rounded-lg p-4 flex items-start">
+              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold mb-1">Error</p>
+                <p className="text-sm">{error}</p>
+              </div>
             </div>
           )}
         </div>
@@ -471,7 +497,7 @@ const OceanData: React.FC = () => {
             {/* Chart 1: Depth vs Chlorophyll */}
             <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <span className="text-3xl mr-3">📈</span>
+                <TrendingUp className="w-8 h-8 mr-3 text-[#00C9D9]" />
                 Depth vs Chlorophyll Concentration
               </h2>
               <div className="bg-white/5 rounded-xl p-6 border border-white/10">
@@ -501,7 +527,7 @@ const OceanData: React.FC = () => {
             {predictionData.actual_chlorophyll && (
               <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                  <span className="text-3xl mr-3">🎯</span>
+                  <CheckCircle className="w-8 h-8 mr-3 text-[#00C9D9]" />
                   Model Prediction Accuracy
                 </h2>
                 <div className="bg-white/5 rounded-xl p-6 border border-white/10">
@@ -514,17 +540,32 @@ const OceanData: React.FC = () => {
             )}
 
             {/* Chart 3: 3D Scatter */}
-            <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <span className="text-3xl mr-3">🌐</span>
-                3D Environmental Parameters
-              </h2>
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <div id="3d-scatter-chart" style={{ height: '600px' }}></div>
-              </div>
-              <p className="mt-4 text-white/70 text-sm text-center">
-                Interactive 3D visualization of Depth, Salinity, and pH colored by Chlorophyll concentration
-              </p>
+            <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20 transition-all duration-300">
+              <button
+                onClick={() => setShow3DChart(!show3DChart)}
+                className="w-full text-left flex items-center justify-between group focus:outline-none"
+              >
+                <h2 className="text-2xl font-bold text-white flex items-center group-hover:text-[#00C9D9] transition-colors">
+                  <Globe className="w-8 h-8 mr-3 text-[#00C9D9]" />
+                  3D Environmental Parameters
+                </h2>
+                {show3DChart ? (
+                  <ChevronUp className="w-6 h-6 text-white/50 group-hover:text-white" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 text-white/50 group-hover:text-white" />
+                )}
+              </button>
+
+              {show3DChart && (
+                <div className="mt-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                  <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                    <div id="3d-scatter-chart" style={{ height: '600px' }}></div>
+                  </div>
+                  <p className="mt-4 text-white/70 text-sm text-center">
+                    Interactive 3D visualization of Depth, Salinity, and pH colored by Chlorophyll concentration
+                  </p>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -532,7 +573,7 @@ const OceanData: React.FC = () => {
         {/* SST Forecast Section */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-            <span className="text-3xl mr-3">🌡️</span>
+            <Thermometer className="w-8 h-8 mr-3 text-[#00C9D9]" />
             SST Forecast
           </h2>
 
@@ -548,7 +589,9 @@ const OceanData: React.FC = () => {
                   id="sst-csv-upload"
                 />
                 <label htmlFor="sst-csv-upload" className="cursor-pointer">
-                  <div className="text-4xl mb-4">🌊</div>
+                  <div className="flex justify-center mb-4">
+                    <FileText className="w-12 h-12 text-[#00C9D9]/80" />
+                  </div>
                   <p className="text-white/70 mb-2">Click to upload SST CSV file</p>
                   <p className="text-white/50 text-sm">Required columns: date, value</p>
                 </label>
@@ -579,21 +622,27 @@ const OceanData: React.FC = () => {
               <h3 className="text-xl font-semibold text-white mb-4">How It Works</h3>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#00C9D9] text-xl">1️⃣</div>
+                  <div className="text-[#00C9D9] p-1 bg-[#00C9D9]/10 rounded-full mt-1">
+                    <Upload className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Upload Historical Data</p>
                     <p className="text-white/70 text-sm">CSV with date and temperature values</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#2ECC71] text-xl">2️⃣</div>
+                  <div className="text-[#2ECC71] p-1 bg-[#2ECC71]/10 rounded-full mt-1">
+                    <Activity className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Prophet Forecasting</p>
                     <p className="text-white/70 text-sm">Time series model predicts future SST</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#F1C40F] text-xl">3️⃣</div>
+                  <div className="text-[#F1C40F] p-1 bg-[#F1C40F]/10 rounded-full mt-1">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Confidence Intervals</p>
                     <p className="text-white/70 text-sm">View predictions with uncertainty bounds</p>
@@ -604,9 +653,12 @@ const OceanData: React.FC = () => {
           </div>
 
           {sstError && (
-            <div className="mt-6 bg-red-500/20 border border-red-400/30 text-red-200 rounded-lg p-4">
-              <p className="font-semibold mb-1">❌ Error</p>
-              <p className="text-sm">{sstError}</p>
+            <div className="mt-6 bg-red-500/20 border border-red-400/30 text-red-200 rounded-lg p-4 flex items-start">
+              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold mb-1">Error</p>
+                <p className="text-sm">{sstError}</p>
+              </div>
             </div>
           )}
         </div>
@@ -615,7 +667,7 @@ const OceanData: React.FC = () => {
         {sstForecastData && sstForecastData.forecast.length > 0 && (
           <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <span className="text-3xl mr-3">📈</span>
+              <TrendingUp className="w-8 h-8 mr-3 text-[#00C9D9]" />
               Temperature Forecast
             </h2>
             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
