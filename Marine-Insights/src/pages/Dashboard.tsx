@@ -1,110 +1,134 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion, type Variants } from 'framer-motion';
+import { Waves, Fish, Sprout, ArrowRight } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
+  const container: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariant: Variants = {
+    hidden: { opacity: 0, y: 15, scale: 0.95 },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 70,
+        damping: 15
+      }
+    }
+  };
+
+  const sections = [
+    {
+      title: 'Ocean Analytics',
+      desc: 'Real-time SST & predictive models',
+      path: '/ocean',
+      icon: Waves,
+      color: 'text-cyan-400',
+      border: 'border-cyan-500/20',
+      hover: 'group-hover:border-cyan-500/60 group-hover:shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)]'
+    },
+    {
+      title: 'Fisheries Management',
+      desc: 'Stock health & sustainability tracking',
+      path: '/fisheries',
+      icon: Fish,
+      color: 'text-amber-400',
+      border: 'border-amber-500/20',
+      hover: 'group-hover:border-amber-500/60 group-hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)]'
+    },
+    {
+      title: 'Biodiversity',
+      desc: 'Genomic sequencing & conservation',
+      path: '/biodiversity',
+      icon: Sprout,
+      color: 'text-emerald-400',
+      border: 'border-emerald-500/20',
+      hover: 'group-hover:border-emerald-500/60 group-hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]'
+    }
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4 bg-gradient-to-r from-white via-[#00C9D9] to-white bg-clip-text text-transparent">
-          Unified Marine Dashboard Prototype
+    <div className="h-[calc(100vh-8rem)] flex flex-col justify-center items-center max-w-6xl mx-auto space-y-12">
+
+      {/* Hero Text */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="text-center space-y-4"
+      >
+
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-2">
+          MARINE <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">INSIGHTS</span>
         </h1>
-        <p className="text-white/80 text-lg max-w-2xl mx-auto leading-relaxed">
-          Comprehensive marine data insights for environmental monitoring, fisheries management, and biodiversity conservation
+        <p className="text-lg text-white/50 max-w-lg mx-auto font-light leading-relaxed">
+          Select a module to begin analysis.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-8 mb-16">
-        {/* Ocean Data Module */}
-        <Link to="/ocean" className="group">
-          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20 hover:bg-white/15 hover:border-[#00C9D9]/30 hover:shadow-2xl hover:shadow-[#00C9D9]/20 transition-all duration-300 transform hover:-translate-y-2">
-            <div className="text-center">
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🌊</div>
-              <h3 className="text-2xl font-bold text-white mb-3">Ocean Data</h3>
-              <p className="text-white/70 mb-6 leading-relaxed">
-                Sea surface temperature forecasts, depth profiles, and environmental monitoring
-              </p>
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                <div className="flex justify-between items-center text-sm text-white/60">
-                  <span>Ocean Forecast</span>
-                  <span className="text-[#2ECC71]">Active</span>
-                </div>
-                <div className="h-16 mt-2 bg-gradient-to-r from-[#007B82]/30 to-[#00C9D9]/30 rounded flex items-end space-x-1 p-2">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-[#00C9D9]/60 rounded-sm flex-1"
-                      style={{ height: `${Math.random() * 100}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Fisheries Module */}
-        <Link to="/fisheries" className="group">
-          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20 hover:bg-white/15 hover:border-[#F1C40F]/30 hover:shadow-2xl hover:shadow-[#F1C40F]/20 transition-all duration-300 transform hover:-translate-y-2">
-            <div className="text-center">
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🐟</div>
-              <h3 className="text-2xl font-bold text-white mb-3">Fisheries</h3>
-              <p className="text-white/70 mb-6 leading-relaxed">
-                Overfishing monitoring and species classification
-              </p>
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                <div className="flex justify-between items-center text-sm text-white/60">
-                  <span>Fish Stocks</span>
-                  <span className="text-[#F1C40F]">Moderate</span>
-                </div>
-                <div className="h-16 mt-2 bg-gradient-to-r from-[#F1C40F]/20 to-[#FF6B6B]/20 rounded flex items-center justify-center">
-                  <div className="w-12 h-12 bg-[#F1C40F]/40 rounded-full flex items-center justify-center">
-                    <div className="w-6 h-6 bg-[#F1C40F] rounded-full"></div>
+      {/* Central Grid */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
+      >
+        {sections.map((section, idx) => (
+          <motion.div key={idx} variants={itemVariant} className="h-full">
+            <Link to={section.path} className="group block h-full">
+              <div className={`
+                neo-card h-full p-8 flex flex-col justify-between aspect-[4/3]
+                ${section.border} ${section.hover}
+              `}>
+                <div className="space-y-6">
+                  <div className={`
+                    w-12 h-12 rounded-xl flex items-center justify-center
+                    bg-white/5 border border-white/5 group-hover:scale-110 transition-transform duration-300
+                  `}>
+                    <section.icon className={`w-6 h-6 ${section.color}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-semibold text-white mb-2 tracking-tight group-hover:text-cyan-50 transition-colors">
+                      {section.title}
+                    </h3>
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      {section.desc}
+                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </Link>
 
-        {/* Biodiversity Module */}
-        <Link to="/biodiversity" className="group">
-          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20 hover:bg-white/15 hover:border-[#2ECC71]/30 hover:shadow-2xl hover:shadow-[#2ECC71]/20 transition-all duration-300 transform hover:-translate-y-2">
-            <div className="text-center">
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🧬</div>
-              <h3 className="text-2xl font-bold text-white mb-3">Biodiversity</h3>
-              <p className="text-white/70 mb-6 leading-relaxed">
-                eDNA analysis, species identification, and invasive species monitoring
-              </p>
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                <div className="flex justify-between items-center text-sm text-white/60 mb-3">
-                  <span>eDNA Analysis</span>
-                  <span className="text-[#2ECC71]">Clean</span>
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
+                  <span className="text-xs uppercase tracking-widest text-white/30">Module {idx + 1}</span>
+                  <div className={`p-2 rounded-full bg-white/5 group-hover:bg-${section.color.split('-')[1]}-500/20 transition-colors`}>
+                    <ArrowRight className={`w-4 h-4 ${section.color}`} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {['Indian Mackerel', 'Rohu', 'Hilsa'].map((species, i) => (
-                    <div key={i} className="flex justify-between text-xs text-white/50">
-                      <span>{species}</span>
-                      <span>{Math.floor(Math.random() * 30 + 70)}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
 
-      {/* Footer */}
-      <div className="text-center">
-        <div className="backdrop-blur-md bg-white/5 rounded-xl p-6 border border-white/10">
-          <p className="text-white/60 text-sm">
-            <span className="font-medium text-[#00C9D9]">Prototype for Hackathon</span> – Marine Data Insights
-          </p>
-          <p className="text-white/40 text-xs mt-2">
-            Empowering marine research and conservation through advanced data analytics
-          </p>
-        </div>
-      </div>
+                {/* Decorative background glow */}
+                <div className={`
+                  absolute -bottom-10 -right-10 w-40 h-40 
+                  bg-${section.color.split('-')[1]}-500/10 blur-[60px] rounded-full
+                  group-hover:bg-${section.color.split('-')[1]}-500/20 transition-all duration-500
+                `} />
+              </div>
+            </Link>
+          </motion.div>
+        ))}
+      </motion.div>
+
+
+
     </div>
   );
 };

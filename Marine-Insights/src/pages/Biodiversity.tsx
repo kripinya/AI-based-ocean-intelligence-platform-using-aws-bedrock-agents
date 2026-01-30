@@ -1,6 +1,24 @@
 import React, { useState } from 'react';
-import { postFormData } from '../utils/api';
+import { postFormData, buildUrl } from '../utils/api';
 import { mockEdnaAnalyze } from '../utils/mock';
+import {
+  Dna,
+  FileSearch,
+  CheckCircle2,
+  AlertTriangle,
+  BarChart2,
+  AlertOctagon,
+  CheckCircle,
+  ClipboardList,
+  Bot,
+  Waves,
+  Target,
+  Sparkles,
+  Lightbulb,
+  Send,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
 interface SpeciesResult {
   sequence: string;
@@ -41,6 +59,7 @@ const Biodiversity: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [userQuestion, setUserQuestion] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [showAssistantContent, setShowAssistantContent] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,7 +86,7 @@ const Biodiversity: React.FC = () => {
         analysis: SpeciesAnalysis;
         detected_species: SpeciesResult[];
         invasive_species: { species: string }[];
-      }>('/api/v1/edna/analyze', undefined, formData);
+      }>('/v1/edna/analyze', undefined, formData);
 
       if (result.detected_species) {
         setAnalysisResults(result.detected_species);
@@ -113,7 +132,7 @@ const Biodiversity: React.FC = () => {
 
     try {
       // Call chat API
-      const response = await fetch('http://localhost:8000/api/v1/edna/chat', {
+      const response = await fetch(buildUrl('/v1/edna/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +186,7 @@ const Biodiversity: React.FC = () => {
         {/* Upload Section */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-            <span className="text-3xl mr-3">🧬</span>
+            <Dna className="w-8 h-8 mr-3 text-[#2ECC71]" />
             eDNA Sample Upload
           </h2>
 
@@ -183,7 +202,9 @@ const Biodiversity: React.FC = () => {
                   id="edna-upload"
                 />
                 <label htmlFor="edna-upload" className="cursor-pointer">
-                  <div className="text-4xl mb-4">🔬</div>
+                  <div className="flex justify-center mb-4">
+                    <FileSearch className="w-12 h-12 text-[#2ECC71]/80" />
+                  </div>
                   <p className="text-white/70 mb-2">Click to upload eDNA sequence file</p>
                   <p className="text-white/50 text-sm">Supports FASTA, FASTQ formats</p>
                 </label>
@@ -214,21 +235,27 @@ const Biodiversity: React.FC = () => {
               <h3 className="text-xl font-semibold text-white mb-4">Analysis Info</h3>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#2ECC71] text-xl">✓</div>
+                  <div className="text-[#2ECC71] p-1 bg-[#2ECC71]/10 rounded-full mt-1">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Species Identification</p>
                     <p className="text-white/70 text-sm">Advanced DNA barcoding analysis</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#F1C40F] text-xl">⚠</div>
+                  <div className="text-[#F1C40F] p-1 bg-[#F1C40F]/10 rounded-full mt-1">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Invasive Species Detection</p>
                     <p className="text-white/70 text-sm">Automated alerts for non-native species</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="text-[#00C9D9] text-xl">📊</div>
+                  <div className="text-[#00C9D9] p-1 bg-[#00C9D9]/10 rounded-full mt-1">
+                    <BarChart2 className="w-5 h-5" />
+                  </div>
                   <div>
                     <p className="text-white font-medium">Biodiversity Assessment</p>
                     <p className="text-white/70 text-sm">Comprehensive ecosystem analysis</p>
@@ -243,7 +270,7 @@ const Biodiversity: React.FC = () => {
         {invasiveAlert && (
           <div className="backdrop-blur-md bg-red-500/20 border-2 border-red-400/50 rounded-2xl p-8">
             <h2 className="text-2xl font-bold text-red-300 mb-4 flex items-center">
-              <span className="text-3xl mr-3">⚠️</span>
+              <AlertOctagon className="w-8 h-8 mr-3 text-red-400" />
               Invasive Species Alert
             </h2>
             <div className="bg-red-500/30 rounded-xl p-6 border border-red-400/30">
@@ -261,7 +288,7 @@ const Biodiversity: React.FC = () => {
         {analysisResults && invasiveAlert === null && (
           <div className="backdrop-blur-md bg-green-500/20 border-2 border-green-400/50 rounded-2xl p-8">
             <h2 className="text-2xl font-bold text-green-300 mb-4 flex items-center">
-              <span className="text-3xl mr-3">✅</span>
+              <CheckCircle className="w-8 h-8 mr-3 text-green-400" />
               Analysis Complete - No Invasive Species Detected
             </h2>
           </div>
@@ -270,7 +297,7 @@ const Biodiversity: React.FC = () => {
         {analysisResults && (
           <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <span className="text-3xl mr-3">📋</span>
+              <ClipboardList className="w-8 h-8 mr-3 text-[#2ECC71]" />
               Species Identification Results
             </h2>
 
@@ -326,7 +353,11 @@ const Biodiversity: React.FC = () => {
                             ? 'bg-red-500/20 text-red-300 border border-red-400/30'
                             : 'bg-green-500/20 text-green-300 border border-green-400/30'
                             }`}>
-                            {result.invasive ? '⚠ Invasive' : '✓ Native'}
+                            {result.invasive ? (
+                              <span className="flex items-center"><AlertTriangle className="w-3 h-3 mr-1" /> Invasive</span>
+                            ) : (
+                              <span className="flex items-center"><CheckCircle2 className="w-3 h-3 mr-1" /> Native</span>
+                            )}
                           </span>
                         </td>
                       </tr>
@@ -360,155 +391,168 @@ const Biodiversity: React.FC = () => {
         {/* GenAI Species Chatbot */}
         {showChatbot && speciesAnalysis && (
           <div className="backdrop-blur-md bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl p-8 border-2 border-purple-400/50">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <span className="text-3xl mr-3">🤖</span>
-              AI Species Assistant
-              <span className="ml-3 text-sm font-normal text-purple-300">Powered by GenAI</span>
-            </h2>
-
-            {/* Species Quick Info */}
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                <h3 className="text-lg font-semibold text-purple-300 mb-4">Species Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-white/60 text-sm">Scientific Name</p>
-                    <p className="text-white font-medium italic">{speciesAnalysis.species_scientific}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/60 text-sm">Common Name</p>
-                    <p className="text-white font-medium">{speciesAnalysis.species_common}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/60 text-sm">Conservation Status</p>
-                    <p className="text-white font-medium">{speciesAnalysis.characteristics.conservation_status}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                <h3 className="text-lg font-semibold text-blue-300 mb-4">Characteristics</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-white/60 text-sm">Habitat</p>
-                    <p className="text-white font-medium text-sm">{speciesAnalysis.characteristics.habitat}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/60 text-sm">Diet</p>
-                    <p className="text-white font-medium text-sm">{speciesAnalysis.characteristics.diet}</p>
-                  </div>
-                </div>
-              </div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                <Bot className="w-8 h-8 mr-3 text-purple-400" />
+                AI Species Assistant
+                <span className="ml-3 text-sm font-normal text-purple-300">Powered by GenAI</span>
+              </h2>
+              <button
+                onClick={() => setShowAssistantContent(!showAssistantContent)}
+                className="text-white/60 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+              >
+                {showAssistantContent ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+              </button>
             </div>
 
-            {/* Chat Interface */}
-            <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-              {/* Chat Messages */}
-              <div className="h-96 overflow-y-auto p-6 space-y-4">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center text-white/60 py-12">
-                    <p className="text-lg mb-4">👋 Ask me anything about this species!</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
-                      <button
-                        onClick={() => setUserQuestion("What is the ecological role of this species?")}
-                        className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all"
-                      >
-                        🌊 Ecological role?
-                      </button>
-                      <button
-                        onClick={() => setUserQuestion("Is this species endangered?")}
-                        className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all"
-                      >
-                        ⚠️ Conservation status?
-                      </button>
-                      <button
-                        onClick={() => setUserQuestion("What are the main threats to this species?")}
-                        className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all"
-                      >
-                        🎯 Main threats?
-                      </button>
-                      <button
-                        onClick={() => setUserQuestion("Tell me interesting facts about this species")}
-                        className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all"
-                      >
-                        ✨ Interesting facts?
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  chatMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === 'user'
-                          ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
-                          : 'bg-white/10 text-white border border-white/20'
-                          }`}
-                      >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+            {showAssistantContent && (
+              <>
+
+                {/* Species Quick Info */}
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-purple-300 mb-4">Species Information</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-white/60 text-sm">Scientific Name</p>
+                        <p className="text-white font-medium italic">{speciesAnalysis.species_scientific}</p>
                       </div>
-                    </div>
-                  ))
-                )}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-white/10 rounded-2xl px-4 py-3 border border-white/20">
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-bounce w-2 h-2 bg-purple-400 rounded-full"></div>
-                        <div className="animate-bounce w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="animate-bounce w-2 h-2 bg-purple-400 rounded-full" style={{ animationDelay: '0.2s' }}></div>
+                      <div>
+                        <p className="text-white/60 text-sm">Common Name</p>
+                        <p className="text-white font-medium">{speciesAnalysis.species_common}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/60 text-sm">Conservation Status</p>
+                        <p className="text-white font-medium">{speciesAnalysis.characteristics.conservation_status}</p>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Chat Input */}
-              <div className="border-t border-white/10 p-4 bg-white/5">
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={userQuestion}
-                    onChange={(e) => setUserQuestion(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendQuestion()}
-                    placeholder="Ask about habitat, behavior, threats, conservation..."
-                    className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                    disabled={chatLoading}
-                  />
-                  <button
-                    onClick={handleSendQuestion}
-                    disabled={chatLoading || !userQuestion.trim()}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
-                  >
-                    {chatLoading ? '...' : 'Send'}
-                  </button>
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-blue-300 mb-4">Characteristics</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-white/60 text-sm">Habitat</p>
+                        <p className="text-white font-medium text-sm">{speciesAnalysis.characteristics.habitat}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/60 text-sm">Diet</p>
+                        <p className="text-white font-medium text-sm">{speciesAnalysis.characteristics.diet}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Interesting Facts */}
-            {speciesAnalysis.interesting_facts && speciesAnalysis.interesting_facts.length > 0 && (
-              <div className="mt-6 bg-white/10 rounded-xl p-6 border border-white/20">
-                <h3 className="text-lg font-semibold text-yellow-300 mb-4 flex items-center">
-                  <span className="mr-2">💡</span>
-                  Interesting Facts
-                </h3>
-                <ul className="space-y-2">
-                  {speciesAnalysis.interesting_facts.map((fact, idx) => (
-                    <li key={idx} className="text-white/80 text-sm flex items-start">
-                      <span className="text-yellow-400 mr-2">•</span>
-                      {fact}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {/* Chat Interface */}
+                <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                  {/* Chat Messages */}
+                  <div className="h-96 overflow-y-auto p-6 space-y-4">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center text-white/60 py-12">
+                        <p className="text-lg mb-4">👋 Ask me anything about this species!</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                          <button
+                            onClick={() => setUserQuestion("What is the ecological role of this species?")}
+                            className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                          >
+                            <Waves className="w-4 h-4" /> Ecological role?
+                          </button>
+                          <button
+                            onClick={() => setUserQuestion("Is this species endangered?")}
+                            className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                          >
+                            <AlertTriangle className="w-4 h-4" /> Conservation status?
+                          </button>
+                          <button
+                            onClick={() => setUserQuestion("What are the main threats to this species?")}
+                            className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                          >
+                            <Target className="w-4 h-4" /> Main threats?
+                          </button>
+                          <button
+                            onClick={() => setUserQuestion("Tell me interesting facts about this species")}
+                            className="bg-white/10 hover:bg-white/20 text-white/80 px-4 py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                          >
+                            <Sparkles className="w-4 h-4" /> Interesting facts?
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      chatMessages.map((msg, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === 'user'
+                              ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
+                              : 'bg-white/10 text-white border border-white/20'
+                              }`}
+                          >
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {chatLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white/10 rounded-2xl px-4 py-3 border border-white/20">
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-bounce w-2 h-2 bg-purple-400 rounded-full"></div>
+                            <div className="animate-bounce w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="animate-bounce w-2 h-2 bg-purple-400 rounded-full" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chat Input */}
+                  <div className="border-t border-white/10 p-4 bg-white/5">
+                    <div className="flex space-x-3">
+                      <input
+                        type="text"
+                        value={userQuestion}
+                        onChange={(e) => setUserQuestion(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendQuestion()}
+                        placeholder="Ask about habitat, behavior, threats, conservation..."
+                        className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                        disabled={chatLoading}
+                      />
+                      <button
+                        onClick={handleSendQuestion}
+                        disabled={chatLoading || !userQuestion.trim()}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
+                      >
+                        {chatLoading ? '...' : <Send className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interesting Facts */}
+                {speciesAnalysis.interesting_facts && speciesAnalysis.interesting_facts.length > 0 && (
+                  <div className="mt-6 bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-yellow-300 mb-4 flex items-center">
+                      <Lightbulb className="w-5 h-5 mr-2 text-yellow-400" />
+                      Interesting Facts
+                    </h3>
+                    <ul className="space-y-2">
+                      {speciesAnalysis.interesting_facts.map((fact, idx) => (
+                        <li key={idx} className="text-white/80 text-sm flex items-start">
+                          <span className="text-yellow-400 mr-2">•</span>
+                          {fact}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
