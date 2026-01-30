@@ -227,12 +227,77 @@ curl -X POST "http://localhost:8000/predict/fish_species" \
 
 ---
 
-## 🐳 Docker (Optional)
+## 🐳 Docker Deployment (Recommended)
+
+### Quick Start
 
 ```bash
-docker build -t ocean-ml-api .
-docker run -p 8000:8000 ocean-ml-api
+# 1. Start Docker Desktop
+open -a Docker
+
+# 2. Deploy with one command
+./deploy.sh
 ```
+
+**That's it!** Your application will be live at:
+- **Frontend**: http://localhost
+- **Backend**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+### Manual Deployment
+
+```bash
+# Build and start services
+docker compose up --build -d
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+### What's Included
+
+- ✅ **Production-ready** multi-stage builds
+- ✅ **Nginx** for frontend serving with caching
+- ✅ **Health checks** for both services
+- ✅ **API proxying** through Nginx
+- ✅ **Environment variable** management
+- ✅ **Volume caching** for faster rebuilds
+
+### Documentation
+
+- **Quick Start**: `DOCKER_QUICK_START.md`
+- **Setup Guide**: `DOCKER_SETUP.md`
+- **Full Documentation**: `DOCKER_DEPLOYMENT.md`
+- **Summary**: `DOCKERIZATION_COMPLETE.md`
+
+### Common Commands
+
+```bash
+# View logs
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Rebuild after changes
+docker compose up --build -d
+
+# Access container shell
+docker compose exec backend bash
+
+# Remove everything
+docker compose down -v
+```
+
+---
+
+## 💻 Local Development (Alternative)
+
+If you prefer running without Docker:
 
 ---
 

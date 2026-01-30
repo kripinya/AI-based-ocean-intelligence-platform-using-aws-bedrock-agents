@@ -1,0 +1,56 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hackveda-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - FISHERIES_AGENT_ID=${FISHERIES_AGENT_ID}
+      - FISHERIES_AGENT_ALIAS_ID=${FISHERIES_AGENT_ALIAS_ID}
+      - OVERFISHING_AGENT_ID=${OVERFISHING_AGENT_ID}
+      - OVERFISHING_AGENT_ALIAS_ID=${OVERFISHING_AGENT_ALIAS_ID}
+    volumes:
+      - ./backend:/app
+      - backend-cache:/root/.cache
+    networks:
+      - hackveda-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./Marine-Insights
+      dockerfile: Dockerfile
+    container_name: hackveda-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - hackveda-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  hackveda-network:
+    driver: bridge
+
+volumes:
+  backend-cache:

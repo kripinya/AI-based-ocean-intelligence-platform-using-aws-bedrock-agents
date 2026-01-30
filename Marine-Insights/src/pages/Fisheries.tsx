@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Plotly from 'plotly.js-dist';
 import { postFormData } from '../utils/api';
 import { mockFishClassification } from '../utils/mock';
+import Chatbot from '../components/Chatbot';
 
 // Skeleton Loader Component
 const SkeletonLoader: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
@@ -646,6 +647,33 @@ const Fisheries: React.FC = () => {
                 )
               )}
             </div>
+          </div>
+        </div>
+
+        {/* AI Chatbot Section */}
+        <div className="grid md:grid-cols-3 gap-8 items-start">
+          <div className="md:col-span-1 text-white">
+            <h2 className="text-2xl font-bold mb-4 flex items-center">
+              <span className="text-3xl mr-3">💬</span>
+              AI Consultant
+            </h2>
+            <p className="text-white/70 mb-6 leading-relaxed">
+              Have questions about sustainable fishing practices, marine biology, or regulations?
+              <br /><br />
+              Our AI Expert, powered by <strong>AWS Bedrock</strong>, uses deep knowledge of fisheries data to provide instant, accurate answers.
+            </p>
+            <div className="bg-blue-500/20 border border-blue-400/30 rounded-xl p-6">
+              <h4 className="font-semibold mb-2">Try asking:</h4>
+              <ul className="space-y-2 text-sm text-white/80 list-disc list-inside">
+                <li>"What are sustainable fishing methods?"</li>
+                <li>"Explain the impact of overfishing on tuna."</li>
+                <li>"What are the regulations for bycatch?"</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <Chatbot />
           </div>
         </div>
       </div>
