@@ -14,12 +14,15 @@ from services.sst_predict import forecast_sst_from_csv
 # -----------------------------
 app = FastAPI(title="Ocean Intelligence ML API")
 
-# Allow frontend access (React/Vite)
+# Allow frontend access (React/Vite + Docker)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://localhost:5173",      # Vite dev server
+        "http://127.0.0.1:5173",      # Vite dev server
+        "http://localhost",            # Docker frontend
+        "http://localhost:80",         # Docker frontend explicit port
+        "*"                            # Allow all for development
     ],
     allow_credentials=True,
     allow_methods=["*"],
