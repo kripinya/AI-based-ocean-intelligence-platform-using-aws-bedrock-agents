@@ -1,22 +1,42 @@
-__pycache__/
+# OS files
 .DS_Store
+Thumbs.db
+
+# Environments (Ignores all .env files but keeps .env.example)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+.pytest_cache/
+.coverage
 
-# RAG / Vector DB
-backend/chroma_db_fisheries/
+# Node (Frontend)
+**/node_modules/
+**/dist/
+**/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database & Data (RAG artifacts)
 *.sqlite3
 *.bin
-
-# PDFs (RAG docs)
+backend/chroma_db_fisheries/
 backend/rag/data/
 
-# Python cache
-__pycache__/
-*.pyc
-
-.env
-
-# Virtual environment
-.venv*
-.env
+# IDEs
+.vscode/
+!.vscode/extensions.json
+.idea/
