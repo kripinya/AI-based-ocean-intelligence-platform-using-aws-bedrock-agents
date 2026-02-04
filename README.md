@@ -1,4 +1,5 @@
 # Marine Insights 🌊
+![UI](ui.png)
 **By Team ThinkTank AI**
 
 Marine Insights is an advanced **Ocean Intelligence System** that combines Machine Learning, Agentic AI, and Retrieval-Augmented Generation (RAG) to analyze ocean conditions, fisheries sustainability, and marine biodiversity.
